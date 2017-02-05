@@ -1,0 +1,341 @@
+#!/usr/bin/expect
+#
+# Shell script in order to control eQ-3 radiator thermostat
+#
+# Note: requires package Tclx
+#
+# Version: 2017-02-05
+#
+# MIT License
+#
+# Copyright (c) 2017 heckie75
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+
+package require Tclx
+
+# sets output to stdout and debug
+log_user 1
+
+set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
+set HELP(turnon) "\
+  status                                         - Print current temperature and mode"
+  
+set mac                         ""
+set cmd                         ""
+
+set timeout                     5
+
+set DELAY                       100
+
+set INIT(device)                1
+set INIT(mode)                  2
+set INIT(timer)                 4
+
+set HANDLES(name)              "0321"
+set HANDLES(vendor)            "0311"
+set HANDLES(request)           "0411"
+set HANDLES(notification)      "0421"
+
+set REQUESTS(status)           "03"
+set REQUESTS(readTimer)        "20"
+
+set MODES(auto)                "08"
+set MODES(manual)              "09"
+set MODES(vacation)            "0a"
+set MODES(boost)               "0e"
+set MODES(openwindow)          "18"
+set MODES(locked)              "28"
+
+set thermostat(mac)            ""
+set thermostat(name)           ""
+set thermostat(vendor)         ""
+set thermostat(status)         ""
+set thermostat(mode)           ""
+set thermostat(valve)          ""
+set thermostat(temperature)    ""
+set thermostat(vacation_date)  ""
+set thermostat(vacation_time)  ""
+
+set MONTHS                  "January February March April May June July August September October November December"
+set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Sat+Sun Mon-Fri Mon-Sun"
+
+proc log {l} {
+  if {[log_user] != 0} {
+    puts $l
+  }
+}
+
+proc help {} {
+  global HELP	
+  puts $HELP(usage)
+  puts "\nBasic commands:"
+  puts $HELP(turnon)
+  puts ""
+}
+
+proc parseArgv {argv} {
+  global mac
+  global cmd
+	
+  if {[llength $argv] < 2} {
+    help
+    exit
+  }
+
+  set mac [lindex $argv 0]
+	
+  set cmd ""
+  for {set i 1} {$i < [llength $argv]} {incr i} {
+    if {$i > 1} {
+      append cmd " "
+    }
+    append cmd [lindex $argv $i]
+  }
+}
+
+proc checkArgs {argv req command reg} {
+  global HELP
+  set check [regexp $reg [concat $argv]]
+  if {[llength $argv] <= $req || $check == 0} {
+    puts $HELP(usage)
+    puts $HELP($command)
+    puts ""	
+    exit 1
+  }
+}
+
+proc connect {} {
+  global thermostat	
+  global mac
+	
+  expect "\[LE\]"
+  send "connect $mac\r"
+  expect "Connection successful" {
+    set thermostat(mac) $mac
+    return 0
+  }
+  return 1
+}
+
+proc disconnect {} {
+  global DELAY
+  send "disconnect\r"
+  after $DELAY
+}
+
+proc init {level} {
+  global INIT
+	
+  set connected [connect] 	
+	
+  if { $connected == 0} {
+    if {$level & $INIT(device)} {
+      readDeviceInfo
+    }
+    if {$level & $INIT(mode)} {
+      readMode
+    }
+    if {$level & $INIT(timer)} {
+      readTimer
+    }
+  } else {
+    puts "Connection failed."
+    exit -1
+  }
+  return $connected
+}
+
+proc readHandle {handle} {
+  global DELAY
+  log "readHandle: char-read-hnd $handle"
+  send "char-read-hnd $handle\r"
+  expect {
+    "Characteristic value/descriptor: " {
+      log "ok"
+    }
+  }
+  expect -re "\[0-9a-f\ ]*" {
+    log "ok"
+  }
+  after $DELAY
+  set value $expect_out(buffer)
+  log "readHandle: $handle $value"
+  return $value
+}
+
+proc writeRequest {command value} {
+  global HANDLES
+  global DELAY
+
+  log "writeRequest: char-write-req $HANDLES(request) $command $value"
+
+  send "char-write-req $HANDLES(request) $command$value\r"
+  expect "Characteristic value was written successfully" {
+    log "ok"
+  }	
+  expect "Notification handle = 0x$HANDLES(notification) value: " {
+    log "ok"
+  }
+  expect -re "\[0-9a-f\ ]*" {
+    log "ok"
+  }
+  
+  after $DELAY
+  set notification $expect_out(buffer)
+  log "notification: 0x$HANDLES(notification) $notification"
+  return $notification
+}
+
+proc hexToDecimal {s} {
+  scan $s %x d
+  return $d
+}
+
+proc decimalToHex {d} {
+  scan $d %d d
+  set h [format %4.2x $d]
+  return [string trim $h]
+}
+
+proc hexToASCII {hex} {
+  set h [join $hex ""];
+  return [binary format H* $h]
+}
+
+proc hexToTemperature {hex} {
+  set value [hexToDecimal $hex]
+  return [expr $value / 2]
+}
+
+proc hexToDate {xyy xmm xdd} {
+  return "[format "%02d" [expr 2000 + [hexToDecimal $xyy]]]-[format "%02d" [hexToDecimal $xmm]]-[format "%02d" [hexToDecimal $xdd]]"  
+}
+
+proc minutesToTime {value multiplicator} {
+  return [clock format [expr 60 * $multiplicator * $value] -format %H:%M -gmt true]
+}
+
+proc getModeName {mode} {
+  global MODES
+  foreach key [lsort [array names MODES]] {
+    if {$mode == $MODES($key)} {
+      return "$key ($mode)"
+    }
+  }
+  return "unknown ($mode)"
+}
+
+proc readDeviceInfo {} {	
+  global HANDLES
+  global thermostat
+
+  set thermostat(name) [hexToASCII [readHandle $HANDLES(name)]]
+  set thermostat(vendor) [hexToASCII [readHandle $HANDLES(vendor)]]
+}
+
+proc readMode {} {
+  global REQUESTS
+  global MODES
+  global thermostat
+	
+  set raw_status [writeRequest $REQUESTS(status) ""]
+  
+  set thermostat(status) $raw_status
+  set thermostat(mode) [lindex $raw_status 2]
+  set thermostat(valve) [hexToDecimal [lindex $raw_status 3]]
+  set thermostat(temperature) [hexToTemperature [lindex $raw_status 5]]
+	
+  if {$thermostat(mode) == $MODES(vacation)} {
+    set thermostat(vacation_date) [hexToDate [lindex $raw_status 7] [lindex $raw_status 9] [lindex $raw_status 6]]
+    set thermostat(vacation_time) [minutesToTime [hexToDecimal [lindex $raw_status 8]] 30]
+  } else {
+    set thermostat(vacation_date) ""
+    set thermostat(vacation_time) ""
+  }
+}
+
+proc readTimer {} {
+  global REQUESTS
+  global MODES
+  global DAYS	
+  global thermostat
+
+  set days [llength $DAYS]
+	
+  for {set day 0} {$day < $days} {incr day} {
+    set raw_timer [writeRequest $REQUESTS(readTimer) [decimalToHex $day]]
+    set thermostat("timer_raw_$day") $raw_timer
+    set thermostat("timer_start_$day") [minutesToTime [hexToDecimal [lindex $raw_timer 3]] 10]
+    set thermostat("timer_temperature_$day") [hexToTemperature [lindex $raw_timer 2]]
+    puts $thermostat("timer_start_$day")
+  }
+}
+
+proc dumpThermostat {} {
+  global HANDLES
+  global REQUESTS
+  global MODES	
+  global thermostat
+
+  set out "\n"
+  append out "Device mac:                   $thermostat(mac)\n"
+  append out "Device name (0x$HANDLES(name)):         $thermostat(name)\n"	
+  append out "Device vendor (0x$HANDLES(vendor)):       $thermostat(vendor)\n"
+  append out "\n"
+  append out "Status (0x$HANDLES(request) $REQUESTS(status)):           $thermostat(status)\n"
+  append out "Temperature:                  $thermostat(temperature)°C\n"
+  append out "Valve:                        $thermostat(valve)%\n"	
+  append out "Mode:                         [getModeName $thermostat(mode)]\n"	
+  		
+  if {$thermostat(mode) == $MODES(vacation)} {
+    append out "Vacation mode:                on\n"	  
+    append out "Vacation until:               $thermostat(vacation_date) $thermostat(vacation_time)\n"
+  } else {
+    append out "Vacation mode:                off\n"
+  }
+	
+  puts $out
+}
+
+proc doCommand {} {
+  global INIT
+  global cmd
+
+  log "doCommand: received command <$cmd>"
+
+  set c $cmd
+  set cmd ""
+	
+  switch -regexp $c {
+    ^status$ {
+      init [expr $INIT(device) + $INIT(mode) + $INIT(timer)]
+      dumpThermostat
+    }
+    ^.*$ {
+      help
+    }
+  }
+}
+
+parseArgv $argv
+spawn -noecho /usr/bin/gatttool -I
+doCommand
+disconnect
+close -i $spawn_id
