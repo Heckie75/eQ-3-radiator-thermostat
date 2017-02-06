@@ -34,9 +34,33 @@ package require Tclx
 log_user 0
 
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
-set HELP(turnon) "\
+set HELP(status) "\
   status                                         - Print current temperature and mode"
-  
+set HELP(sync) "\
+  sync                                           - Sync time and prints current mode and mode"
+set HELP(window) "\
+  window 16.5 01:25                              - Sets temperature in °C and time for open window mode"
+set HELP(auto) "\
+  auto                                           - Sets auto mode"
+set HELP(manual) "\
+  manual                                         - Sets manual mode"
+set HELP(daynight) "\
+  daynight 22.5 17                               - Sets day and night temperature in °C"
+set HELP(day) "\
+  day                                            - Sets current temperature to programmed day temperature"
+set HELP(night) "\
+  night                                          - Sets current temperature to programmed night temperature"
+set HELP(temperature) "\
+  temp 22.5                                      - Sets current temperature to given value"
+set HELP(off) "\
+  off                                            - Sets temperate to off"
+set HELP(boost) "\
+  boost                                          - Activates boost mode for 5 minutes"
+set HELP(boost_off) "\
+  boost off                                      - Deactivates boost mode"
+set HELP(reset) "\
+  reset                                          - Factory reset"
+
 set mac                         ""
 set cmd                         ""
 
@@ -54,14 +78,29 @@ set HANDLES(request)           "0411"
 set HANDLES(notification)      "0421"
 
 set REQUESTS(status)           "03"
+set REQUESTS(writeTime)        "03"
+set REQUESTS(writeDayNight)    "11"
+set REQUESTS(writeWindowOpen)  "14"
 set REQUESTS(readTimer)        "20"
+set REQUESTS(writeMode)        "40"
+set REQUESTS(writeTemperature) "41"
+set REQUESTS(writeOff)         "4109"
+set REQUESTS(writeDayTemperature)   "43"
+set REQUESTS(writeNightTemperature) "44"
+set REQUESTS(writeBoost)       "45ff"
+set REQUESTS(writeBoostOff)    "4500"
+set REQUESTS(reset)            "f0"
 
 set MODES(auto)                "08"
 set MODES(manual)              "09"
 set MODES(vacation)            "0a"
-set MODES(boost)               "0e"
+set MODES(boost-manual)        "0d"
+set MODES(boost-auto)          "0c"
 set MODES(openwindow)          "18"
 set MODES(locked)              "28"
+
+set MODES(setAuto)             "00"
+set MODES(setManual)           "40"
 
 set thermostat(mac)            ""
 set thermostat(name)           ""
@@ -73,7 +112,6 @@ set thermostat(temperature)    ""
 set thermostat(vacation_date)  ""
 set thermostat(vacation_time)  ""
 
-set MONTHS                  "January February March April May June July August September October November December"
 #set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Sat+Sun Mon-Fri Mon-Sun"
 set DAYS                    "Sat Sun Mon Tue Wed Thu Fri"
 
@@ -86,8 +124,20 @@ proc log {l} {
 proc help {} {
   global HELP	
   puts $HELP(usage)
-  puts "\nBasic commands:"
-  puts $HELP(turnon)
+  puts "\nCommands:"
+  puts $HELP(status)
+  puts $HELP(sync)
+  puts $HELP(window)
+  puts $HELP(auto)
+  puts $HELP(manual)
+  puts $HELP(daynight)
+  puts $HELP(day)
+  puts $HELP(night)
+  puts $HELP(temperature)
+  puts $HELP(boost)	
+  puts $HELP(boost_off)
+  puts $HELP(off)
+  puts $HELP(reset)
   puts ""
 }
 
@@ -229,6 +279,42 @@ proc hexToDate {xyy xmm xdd} {
   return "[format "%02d" [expr 2000 + [hexToDecimal $xyy]]]-[format "%02d" [hexToDecimal $xmm]]-[format "%02d" [hexToDecimal $xdd]]"  
 }
 
+proc currentTime {} {
+  return [clock format [expr [clock seconds]] -format %H:%M:%S]
+}
+
+proc currentDate {} {
+  return [clock format [expr [clock seconds]] -format %y-%m-%d]
+}
+
+proc timeToHex {time} {
+  set part [split $time ":"]
+  scan [lindex $part 0] %d hours  
+  scan [lindex $part 1] %d minutes
+  
+  set hex "[decimalToHex $hours][decimalToHex $minutes]"
+  
+  if {[llength $part] == 3} {
+    scan [lindex $part 2] %d seconds
+    append hex [decimalToHex $seconds]
+  } 
+
+  return $hex
+}
+
+proc dateToHex {time} {
+  set part [split $time "-"]
+  scan [lindex $part 0] %d year
+  scan [lindex $part 1] %d month
+  scan [lindex $part 2] %d day
+
+  return "[decimalToHex $year][decimalToHex $month][decimalToHex $day]"
+}
+
+proc tempToHex {temp} {
+  return [decimalToHex [expr int($temp * 2)]]
+}
+
 proc minutesToTime {value multiplicator} {
   set seconds [expr 60 * $multiplicator * $value]
   set time ""
@@ -260,11 +346,17 @@ proc readDeviceInfo {} {
 
 proc readMode {} {
   global REQUESTS
-  global MODES
-  global thermostat
 	
   set raw_status [writeRequest $REQUESTS(status) ""]
   
+  parseMode $raw_status
+}
+
+proc parseMode {raw_status} {
+  global REQUESTS
+  global MODES
+  global thermostat
+
   set thermostat(status) $raw_status
   set thermostat(mode) [lindex $raw_status 2]
   set thermostat(valve) [hexToDecimal [lindex $raw_status 3]]
@@ -305,29 +397,44 @@ proc readTimer {} {
   }
 }
 
-proc dumpThermostat {} {
+proc printDevice {} {
   global HANDLES
-  global REQUESTS
-  global MODES
-  global DAYS
   global thermostat
 
-  set out "\n"
   append out "Device mac:\t\t\t$thermostat(mac)\n"
   append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"	
   append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
   append out "\n"
+  
+  return $out
+}
+
+proc printStatus {} {
+  global HANDLES
+  global REQUESTS
+  global MODES
+  global thermostat
+  
   append out "Status (0x$HANDLES(request) $REQUESTS(status)):\t\t$thermostat(status)\n"
   append out "Temperature:\t\t\t$thermostat(temperature)°C\n"
-  append out "Valve:\t\t\t\t$thermostat(valve)%\n"	
-  append out "Mode:\t\t\t\t[getModeName $thermostat(mode)]\n"	
-  		
+  append out "Valve:\t\t\t\t$thermostat(valve)%\n"
+  append out "Mode:\t\t\t\t[getModeName $thermostat(mode)]\n"
+  
   if {$thermostat(mode) == $MODES(vacation)} {
     append out "Vacation mode:\t\t\ton\n"	  
     append out "Vacation until:\t\t\t$thermostat(vacation_date) $thermostat(vacation_time)\n"
   } else {
     append out "Vacation mode:\t\t\toff\n"
   }
+  
+  return $out
+}
+
+proc printTimers {} {
+  global HANDLES
+  global REQUESTS
+  global DAYS
+  global thermostat
 
   set days [llength $DAYS]
   for {set day 0} {$day < $days} {incr day} {
@@ -336,13 +443,111 @@ proc dumpThermostat {} {
     for {set event 1} {$event <= 7} {incr event} {
 	  set key "[lindex $day 0]_[lindex $event 0]"
 	  append out "\t[lindex $DAYS $day], $thermostat("timer_start_$key") - $thermostat("timer_end_$key"):\t$thermostat("timer_temperature_$key")°C\n"
-	  if {"24:00" == $thermostat("timer_end_$key")} {
+	  if {"24:00" == "$thermostat("timer_end_$key")"} {
 	    break
 	  }	  
 	}
   }	
-	
+  
+  return $out
+}
+
+proc dumpThermostat {} {
+  set out "\n"
+  append out [printDevice]
+  append out [printStatus]
+  append out [printTimers]
   puts $out
+}
+
+proc syncTime {} {
+  global REQUESTS
+
+  set currentTime [currentTime]
+  set currentDate [currentDate]
+  set raw_status [writeRequest $REQUESTS(writeTime) "[dateToHex $currentDate][timeToHex $currentTime]"]
+
+  puts "\nSync time:\t\t\t$currentDate $currentTime"
+  parseMode $raw_status
+  puts "\n[printStatus]"
+}
+
+proc setDayNight {day night} {
+  global REQUESTS
+	
+  set raw_status [writeRequest $REQUESTS(writeDayNight) "[tempToHex $day][tempToHex $night]"]
+  
+  puts "\nDay temperature:\t\t$day°C"
+  puts "Night temperature:\t\t$night°C"
+  
+  parseMode $raw_status
+  puts "\n[printStatus]"
+}
+
+proc setWindowMode {temp time} {
+  global REQUESTS
+
+  set part [split $time ":"]
+  scan [lindex $part 0] %d hours  
+  scan [lindex $part 1] %d minutes
+	
+  set period [expr ($minutes + $hours * 60) / 5]
+	
+  set raw_status [writeRequest $REQUESTS(writeWindowOpen) "[tempToHex $temp][decimalToHex $period]"]
+  
+  puts "\nWindow open temperature:\t$temp°C"
+  puts "Window open time:\t\t$time"
+  
+  parseMode $raw_status
+  puts "\n[printStatus]"
+}
+
+proc setMode {mode} {
+  global REQUESTS
+  global MODES
+	
+  switch $mode {
+    "auto" {
+      set raw_status [writeRequest $REQUESTS(writeMode) "$MODES(setAuto)"]
+    }
+    "manual" {
+      set raw_status [writeRequest $REQUESTS(writeMode) "$MODES(setManual)"]	    
+    }
+    "boost" {
+      set raw_status [writeRequest $REQUESTS(writeBoost) ""]	    
+    }
+    "boost_off" {
+      set raw_status [writeRequest $REQUESTS(writeBoostOff) ""]	    
+    }
+  }
+  parseMode $raw_status
+  puts "\n[printStatus]"  
+}
+
+proc setTemperature {temp} {
+  global REQUESTS
+  
+  set raw_status "" 
+  if {"day" == $temp} {
+    set raw_status [writeRequest $REQUESTS(writeDayTemperature) ""]	  
+  } elseif {"night" == $temp} {
+    set raw_status [writeRequest $REQUESTS(writeNightTemperature) ""]
+  } elseif {"off" == $temp} {
+    set raw_status [writeRequest $REQUESTS(writeOff) ""]
+  } else {
+    set raw_status [writeRequest $REQUESTS(writeTemperature) "[tempToHex $temp]"]	  
+  }
+  
+  parseMode $raw_status
+  puts "\n[printStatus]"  
+}
+
+proc reset {} {
+  global REQUESTS
+  
+  set raw_status [writeRequest $REQUESTS(reset) ""]
+  parseMode $raw_status
+  puts "\n[printStatus]"  
 }
 
 proc doCommand {} {
@@ -358,6 +563,57 @@ proc doCommand {} {
     ^status$ {
       init [expr $INIT(device) + $INIT(mode) + $INIT(timer)]
       dumpThermostat
+    }
+    ^sync$ {
+      init 0
+      syncTime
+    }
+    ^daynight* {
+      checkArgs $c 2 "daynight" {^daynight [0-9]{1,2}\.?[05]? [0-9]{1,2}\.?[05]?$}	    
+      init 0
+      setDayNight [lindex $c 1] [lindex $c 2]
+    }
+    ^window* {
+      checkArgs $c 2 "window" {^window [0-9]{1,2}\.?[05]? [0-9]{1,2}:[0-9][05]$}	    
+      init 0
+      setWindowMode [lindex $c 1] [lindex $c 2]
+    }
+    ^auto* {	    
+      init 0
+      setMode "auto"
+    }
+    ^manual* {
+      init 0
+      setMode "manual"
+    }
+    ^boost$ {	    
+      init 0
+      setMode "boost"
+    }	  
+    ^boost\ off$ {	    
+      init 0
+      setMode "boost_off"
+    }
+    ^off$ {	    
+      init 0
+      setTemperature "off"
+    }	  
+    ^day$ {	    
+      init 0
+      setTemperature "day"
+    }
+    ^night$ {	    
+      init 0
+      setTemperature "night"
+    }
+    ^temp* {
+      checkArgs $c 1 "temperature" {^temp [0-9]{1,2}\.?[05]?$}	    
+      init 0
+      setTemperature [lindex $c 1]
+    }
+    ^reset$ {
+      init 0
+      reset
     }
     ^.*$ {
       help
