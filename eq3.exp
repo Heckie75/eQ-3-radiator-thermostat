@@ -1,5 +1,5 @@
 #!/usr/bin/expect
-#
+# 
 # Shell script in order to control eQ-3 radiator thermostat
 #
 # Note: requires package Tclx
@@ -8,7 +8,7 @@
 #
 # MIT License
 #
-# Copyright (c) 2017 heckie75
+# Copyright (c) 2017 Martin Heckenbach
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@
 package require Tclx
 
 # sets output to stdout and debug
-log_user 1
+log_user 0
 
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
 set HELP(turnon) "\
@@ -74,7 +74,8 @@ set thermostat(vacation_date)  ""
 set thermostat(vacation_time)  ""
 
 set MONTHS                  "January February March April May June July August September October November December"
-set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Sat+Sun Mon-Fri Mon-Sun"
+#set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Sat+Sun Mon-Fri Mon-Sun"
+set DAYS                    "Sat Sun Mon Tue Wed Thu Fri"
 
 proc log {l} {
   if {[log_user] != 0} {
@@ -221,7 +222,7 @@ proc hexToASCII {hex} {
 
 proc hexToTemperature {hex} {
   set value [hexToDecimal $hex]
-  return [expr $value / 2]
+  return [expr $value / 2.0]
 }
 
 proc hexToDate {xyy xmm xdd} {
@@ -229,7 +230,14 @@ proc hexToDate {xyy xmm xdd} {
 }
 
 proc minutesToTime {value multiplicator} {
-  return [clock format [expr 60 * $multiplicator * $value] -format %H:%M -gmt true]
+  set seconds [expr 60 * $multiplicator * $value]
+  set time ""
+  if {$seconds == 86400} {
+    set time "24:00"
+  } else {
+    set time [clock format [expr 60 * $multiplicator * $value] -format %H:%M -gmt true]
+  }
+  return $time
 }
 
 proc getModeName {mode} {
@@ -278,38 +286,61 @@ proc readTimer {} {
   global thermostat
 
   set days [llength $DAYS]
-	
   for {set day 0} {$day < $days} {incr day} {
-    set raw_timer [writeRequest $REQUESTS(readTimer) [decimalToHex $day]]
-    set thermostat("timer_raw_$day") $raw_timer
-    set thermostat("timer_start_$day") [minutesToTime [hexToDecimal [lindex $raw_timer 3]] 10]
-    set thermostat("timer_temperature_$day") [hexToTemperature [lindex $raw_timer 2]]
-    puts $thermostat("timer_start_$day")
+	set raw_timer [writeRequest $REQUESTS(readTimer) [decimalToHex $day]]
+	set thermostat("timer_raw_$day") $raw_timer
+	
+	set event 1
+	set start "00:00"
+    while {$event <= 7 && $start != "24:00"} {
+	  set key "[lindex $day 0]_[lindex $event 0]"
+      set thermostat("timer_start_$key") $start
+	  set end [minutesToTime [hexToDecimal [lindex $raw_timer [expr 2 * $event + 1 ]]] 10]
+      set thermostat("timer_end_$key") $end
+      set thermostat("timer_temperature_$key") [hexToTemperature [lindex $raw_timer [expr 2 * $event]]]
+	  
+	  incr event
+	  set start $end
+	}
   }
 }
 
 proc dumpThermostat {} {
   global HANDLES
   global REQUESTS
-  global MODES	
+  global MODES
+  global DAYS
   global thermostat
 
   set out "\n"
-  append out "Device mac:                   $thermostat(mac)\n"
-  append out "Device name (0x$HANDLES(name)):         $thermostat(name)\n"	
-  append out "Device vendor (0x$HANDLES(vendor)):       $thermostat(vendor)\n"
+  append out "Device mac:\t\t\t$thermostat(mac)\n"
+  append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"	
+  append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
   append out "\n"
-  append out "Status (0x$HANDLES(request) $REQUESTS(status)):           $thermostat(status)\n"
-  append out "Temperature:                  $thermostat(temperature)°C\n"
-  append out "Valve:                        $thermostat(valve)%\n"	
-  append out "Mode:                         [getModeName $thermostat(mode)]\n"	
+  append out "Status (0x$HANDLES(request) $REQUESTS(status)):\t\t$thermostat(status)\n"
+  append out "Temperature:\t\t\t$thermostat(temperature)°C\n"
+  append out "Valve:\t\t\t\t$thermostat(valve)%\n"	
+  append out "Mode:\t\t\t\t[getModeName $thermostat(mode)]\n"	
   		
   if {$thermostat(mode) == $MODES(vacation)} {
-    append out "Vacation mode:                on\n"	  
-    append out "Vacation until:               $thermostat(vacation_date) $thermostat(vacation_time)\n"
+    append out "Vacation mode:\t\t\ton\n"	  
+    append out "Vacation until:\t\t\t$thermostat(vacation_date) $thermostat(vacation_time)\n"
   } else {
-    append out "Vacation mode:                off\n"
+    append out "Vacation mode:\t\t\toff\n"
   }
+
+  set days [llength $DAYS]
+  for {set day 0} {$day < $days} {incr day} {
+    append out "\n"
+	append out "Timer for [lindex $DAYS $day] (0x$HANDLES(request) $REQUESTS(readTimer)[decimalToHex $day]):\t$thermostat("timer_raw_$day")\n"
+    for {set event 1} {$event <= 7} {incr event} {
+	  set key "[lindex $day 0]_[lindex $event 0]"
+	  append out "\t[lindex $DAYS $day], $thermostat("timer_start_$key") - $thermostat("timer_end_$key"):\t$thermostat("timer_temperature_$key")°C\n"
+	  if {"24:00" == $thermostat("timer_end_$key")} {
+	    break
+	  }	  
+	}
+  }	
 	
   puts $out
 }
