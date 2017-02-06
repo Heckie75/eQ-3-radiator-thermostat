@@ -1,5 +1,0 @@
-#!/usr/bin/expect
-
-set s "01 02 03 04"
-set part [split $s " "]
-puts [lindex $s 1]

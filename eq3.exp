@@ -39,7 +39,7 @@ set HELP(status) "\
 set HELP(sync) "\
   sync                                           - Sync time and prints current mode and mode"
 set HELP(window) "\
-  window 16.5 01:25                              - Sets temperature in °C and time for open window mode"
+  window 16.5 01:25                              - Sets temperature in °C and period for open window mode"
 set HELP(auto) "\
   auto                                           - Sets auto mode"
 set HELP(manual) "\
@@ -58,13 +58,17 @@ set HELP(boost) "\
   boost                                          - Activates boost mode for 5 minutes"
 set HELP(boost_off) "\
   boost off                                      - Deactivates boost mode"
+set HELP(lock) "\
+  lock                                           - Locks radiator thermostat (LOC). No PIN required!"
+set HELP(unlock) "\
+  unlock                                         - Unlocks radiator thermostat. No PIN required!"
 set HELP(reset) "\
   reset                                          - Factory reset"
 
 set mac                         ""
 set cmd                         ""
 
-set timeout                     5
+set timeout                     10
 
 set DELAY                       100
 
@@ -89,6 +93,8 @@ set REQUESTS(writeDayTemperature)   "43"
 set REQUESTS(writeNightTemperature) "44"
 set REQUESTS(writeBoost)       "45ff"
 set REQUESTS(writeBoostOff)    "4500"
+set REQUESTS(lock)             "8001"
+set REQUESTS(unlock)           "8000"
 set REQUESTS(reset)            "f0"
 
 set MODES(auto)                "08"
@@ -97,7 +103,7 @@ set MODES(vacation)            "0a"
 set MODES(boost-manual)        "0d"
 set MODES(boost-auto)          "0c"
 set MODES(openwindow)          "18"
-set MODES(locked)              "28"
+set MODES(locked)              "29"
 
 set MODES(setAuto)             "00"
 set MODES(setManual)           "40"
@@ -137,6 +143,8 @@ proc help {} {
   puts $HELP(boost)	
   puts $HELP(boost_off)
   puts $HELP(off)
+  puts $HELP(lock)
+  puts $HELP(unlock)
   puts $HELP(reset)
   puts ""
 }
@@ -542,10 +550,10 @@ proc setTemperature {temp} {
   puts "\n[printStatus]"  
 }
 
-proc reset {} {
+proc otherCommand {command} {
   global REQUESTS
   
-  set raw_status [writeRequest $REQUESTS(reset) ""]
+  set raw_status [writeRequest $REQUESTS($command) ""]
   parseMode $raw_status
   puts "\n[printStatus]"  
 }
@@ -611,9 +619,17 @@ proc doCommand {} {
       init 0
       setTemperature [lindex $c 1]
     }
+    ^lock$ {
+      init 0
+      otherCommand "lock"
+    }
+    ^unlock$ {
+      init 0
+      otherCommand "unlock"
+    }	  
     ^reset$ {
       init 0
-      reset
+      otherCommand "reset"
     }
     ^.*$ {
       help
