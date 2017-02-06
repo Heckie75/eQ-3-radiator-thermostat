@@ -33,15 +33,15 @@ Commands:
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 status
 
-Device mac:         00:1A:22:07:FD:03
+Device mac:                 00:1A:22:07:FD:03
 Device name (0x0321):       CC-RT-BLE
 Device vendor (0x0311):     eq-3
 
-Status (0x0411 03):     02 01 08 00 04 2a 
-Temperature:            21.0°C
-Valve:              0%
-Mode:               auto (08)
-Vacation mode:          off
+Status (0x0411 03):         02 01 08 00 04 2a 
+Temperature:                21.0°C
+Valve:                      0%
+Mode:                       auto (08)
+Vacation mode:              off
 
 Timer for Sat (0x0411 2000):    21 00 22 2e 2a 86 22 90 00 00 00 00 00 00 00 00 
     Sat, 00:00 - 07:40: 17.0°C
@@ -84,12 +84,12 @@ Timer for Fri (0x0411 2006):    21 06 22 64 2a 86 22 90 00 00 00 00 00 00 00 00
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 sync
 
-Sync time:          17-02-06 20:56:40
+Sync time:              17-02-06 20:56:40
 
 Status (0x0411 03):     02 01 08 00 04 2a 
 Temperature:            21.0°C
-Valve:              0%
-Mode:               auto (08)
+Valve:                  0%
+Mode:                   auto (08)
 Vacation mode:          off
 ```
 
@@ -99,13 +99,13 @@ Vacation mode:          off
 $ ./eq3.exp 00:1A:22:07:FD:03 window 16.5 01:00
 
 Window open temperature:    16.5°C
-Window open time:       01:00
+Window open time:           01:00
 
-Status (0x0411 03):     02 01 08 00 04 2a 
-Temperature:            21.0°C
-Valve:              0%
-Mode:               auto (08)
-Vacation mode:          off
+Status (0x0411 03):         01 08 00 04 2a 
+Temperature:                21.0°C
+Valve:                      0%
+Mode:                       auto (08)
+Vacation mode:              off
 ```
 
 ### Set to auto and manual mode
@@ -115,16 +115,16 @@ $ ./eq3.exp 00:1A:22:07:FD:03 auto
 
 Status (0x0411 03):     02 01 08 00 04 2a 
 Temperature:            21.0°C
-Valve:              0%
-Mode:               auto (08)
+Valve:                  0%
+Mode:                   auto (08)
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 manual
 
 Status (0x0411 03):     02 01 09 00 04 2a 
 Temperature:            21.0°C
-Valve:              0%
-Mode:               manual (09)
+Valve:                  0%
+Mode:                   manual (09)
 Vacation mode:          off
 ```
 
@@ -138,24 +138,24 @@ Night temperature:      17.0°C
 
 Status (0x0411 03):     02 01 09 00 04 2d 
 Temperature:            22.5°C
-Valve:              0%
-Mode:               manual (09)
+Valve:                  0%
+Mode:                   manual (09)
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 day
 
 Status (0x0411 03):     02 01 09 00 04 2c 
 Temperature:            22.0°C
-Valve:              0%
-Mode:               manual (09)
+Valve:                  0%
+Mode:                   manual (09)
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 night
 
 Status (0x0411 03):     02 01 09 0f 04 22 
 Temperature:            17.0°C
-Valve:              15%
-Mode:               manual (09)
+Valve:                  15%
+Mode:                   manual (09)
 Vacation mode:          off
 ```
 
@@ -166,8 +166,8 @@ $ ./eq3.exp 00:1A:22:07:FD:03 temp 22.5
 
 Status (0x0411 03):     02 01 09 0f 04 2d 
 Temperature:            22.5°C
-Valve:              15%
-Mode:               manual (09)
+Valve:                  15%
+Mode:                   manual (09)
 Vacation mode:          off
 ```
 
@@ -178,16 +178,16 @@ $ ./eq3.exp 00:1A:22:07:FD:03 boost
 
 Status (0x0411 03):     02 01 0d 50 04 2d 
 Temperature:            22.5°C
-Valve:              80%
-Mode:               boost-manual (0d)
+Valve:                  80%
+Mode:                   boost-manual (0d)
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 boost off
 
 Status (0x0411 03):     02 01 09 0f 04 2d 
 Temperature:            22.5°C
-Valve:              15%
-Mode:               manual (09)
+Valve:                  15%
+Mode:                   manual (09)
 Vacation mode:          off
 ```
 
@@ -198,15 +198,15 @@ $ ./eq3.exp 00:1A:22:07:FD:03 lock
 
 Status (0x0411 03):     02 01 29 2a 04 2d 
 Temperature:            22.5°C
-Valve:              42%
-Mode:               locked (29)
+Valve:                  42%
+Mode:                   locked (29)
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 unlock
 
 Status (0x0411 03):     02 01 09 2a 04 2d 
 Temperature:            22.5°C
-Valve:              42%
-Mode:               manual (09)
+Valve:                  42%
+Mode:                   manual (09)
 Vacation mode:          off
 ```
