@@ -31,32 +31,41 @@
 package require Tclx
 
 # sets output to stdout and debug
-log_user 1
+log_user 0
 
 set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3\n"
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
 set HELP(status) "\
-  status                                         - Prints target temperature, mode and schedules"
+  status                                         - Prints target temperature, mode and schedules\n\
+\                                                 (in debug mode also last command even of official app, set log_user to 1 in code!)"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
 set HELP(window) "\
-  window 16.5 01:25                              - Sets temperature in °C and period for open window mode"
+  window <temp> <hh:mm>                          - Sets temperature in °C and period for open window mode\n\
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
+\                                                 hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05"
 set HELP(auto) "\
   auto                                           - Sets auto mode"
 set HELP(manual) "\
   manual                                         - Sets manual mode"
 set HELP(comforteco) "\
-  comforteco 22.5 17                             - Sets comfort and eco temperature in °C"
+  comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C\n\
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5"
 set HELP(offset) "\
-  offset -3.5                                    - Sets the offset temperature in °C, must be between -3.5 and 3.5°C"
+  offset <offset>                                - Sets the offset temperature in °C\n\
+\                                                 offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5"  
 set HELP(comfort) "\
   comfort                                        - Sets target temperature to programmed comfort temperature"
 set HELP(eco) "\
   eco                                            - Sets target temperature to programmed eco temperature"
 set HELP(temperature) "\
-  temp 22.5                                      - Sets target temperature to given value"
+  temp <temp>                                    - Sets target temperature to given value\n\
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5"
 set HELP(vacation) "\
-  vacation 17-02-28 23:30 13.5                   - Activates vacation mode until date and time and temperature in °C"
+  vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C\n\
+\                                                 yy-mm-dd: until date, e.g. 17-03-31\n\
+\                                                 hh:mm: until time where minutes must be 00 or 30, e.g. 23:30\n\
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5" 
 set HELP(on) "\
   on                                             - Sets thermostat to permanent on (30°C)"
 set HELP(off) "\
@@ -65,12 +74,17 @@ set HELP(boost) "\
   boost                                          - Activates boost mode for 5 minutes"
 set HELP(boost_off) "\
   boost off                                      - Deactivates boost mode"
+set HELP(timer) "\
+  timer <day> <temp> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time\n\
+\                                                 day:  mon, tue, wed, thu, fri, sat, sun\n\
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
+\                                                 hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40"
 set HELP(lock) "\
   lock                                           - Locks thermostat (LOC). No PIN required!"
 set HELP(unlock) "\
   unlock                                         - Unlocks thermostat. No PIN required!"
 set HELP(clear) "\
-  clear                                          - Clear buffer of last request"
+  clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)"
 set HELP(reset) "\
   reset                                          - Factory reset"
 
@@ -177,6 +191,7 @@ proc help {} {
 	
   puts "\nTimers:"
   puts $HELP(vacation)	
+  puts $HELP(timer)	
 	
   puts "\nConfiguration:"
   puts $HELP(comforteco)

@@ -6,24 +6,52 @@ This script allows to control the bluetooth radiator thermostat with the Raspber
 
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 
+Full-featured CLI for radiator thermostat eQ-3
+
 Usage: <mac> <command> <parameters...>
 
+Status / sync:
+ sync                                           - Syncs time and prints target temperature and mode
+ status                                         - Prints target temperature, mode and schedules
+                                                  (in debug mode also last command even of official app, set log_user to 1 in code!)
 
-Commands:
- status                                         - Print current temperature and mode
- sync                                           - Sync time and prints current mode and mode
- window 16.5 01:25                              - Sets temperature in °C and time for open window mode
+Mode:
  auto                                           - Sets auto mode
  manual                                         - Sets manual mode
- daynight 22.5 17                               - Sets day and night temperature in °C
- day                                            - Sets current temperature to programmed day temperature
- night                                          - Sets current temperature to programmed night temperature
- temp 22.5                                      - Sets current temperature to given value
+
+Temperature:
+ comfort                                        - Sets target temperature to programmed comfort temperature
+ eco                                            - Sets target temperature to programmed eco temperature
  boost                                          - Activates boost mode for 5 minutes
  boost off                                      - Deactivates boost mode
- off                                            - Sets temperate to off
- lock                                           - Locks radiator thermostat (LOC). No PIN required!
- unlock                                         - Unlocks radiator thermostat. No PIN required!
+ temp <temp>                                    - Sets target temperature to given value
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
+ on                                             - Sets thermostat to permanent on (30°C)
+ off                                            - Sets thermostat to permanent off (4.5°C)
+
+Timers:
+ vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C
+                                                  yy-mm-dd: until date, e.g. 17-03-31
+                                                  hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
+ timer <day> <temp> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
+                                                  day:  mon, tue, wed, thu, fri, sat, sun
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40
+
+Configuration:
+ comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
+ window <temp> <hh:mm>                          - Sets temperature in °C and period for open window mode
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05
+ offset <offset>                                - Sets the offset temperature in °C
+                                                  offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5
+
+Others:
+ lock                                           - Locks thermostat (LOC). No PIN required!
+ unlock                                         - Unlocks thermostat. No PIN required!
+ clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)
  reset                                          - Factory reset
 ```
 
@@ -33,47 +61,46 @@ Commands:
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 status
 
-Device mac:                 00:1A:22:07:FD:03
+Device mac:         00:1A:22:07:FD:03
 Device name (0x0321):       CC-RT-BLE
 Device vendor (0x0311):     eq-3
 
-Status (0x0411 03):         02 01 08 00 04 2a 
-Temperature:                21.0°C
-Valve:                      0%
-Mode:                       auto (08)
-Vacation mode:              off
+Temperature:            22.0°C
+Valve:              0%
+Mode:               auto 
+Vacation mode:          off
 
-Timer for Sat (0x0411 2000):    21 00 22 2e 2a 86 22 90 00 00 00 00 00 00 00 00 
+Timer for Sat:
     Sat, 00:00 - 07:40: 17.0°C
     Sat, 07:40 - 22:20: 21.0°C
     Sat, 22:20 - 24:00: 17.0°C
 
-Timer for Sun (0x0411 2001):    21 01 22 2e 2a 86 22 90 00 00 00 00 00 00 00 00 
-    Sun, 00:00 - 07:40: 17.0°C
-    Sun, 07:40 - 22:20: 21.0°C
-    Sun, 22:20 - 24:00: 17.0°C
+Timer for Sun:
+    Sun, 00:00 - 01:10: 1.0°C
+    Sun, 01:10 - 04:30: 9.0°C
+    Sun, 04:30 - 24:00: 27.0°C
 
-Timer for Mon (0x0411 2002):    21 02 22 65 2a 82 22 90 00 00 00 00 00 00 00 00 
+Timer for Mon:
     Mon, 00:00 - 16:50: 17.0°C
     Mon, 16:50 - 21:40: 21.0°C
     Mon, 21:40 - 24:00: 17.0°C
 
-Timer for Tue (0x0411 2003):    21 03 22 65 2a 82 22 90 00 00 00 00 00 00 00 00 
+Timer for Tue:
     Tue, 00:00 - 16:50: 17.0°C
     Tue, 16:50 - 21:40: 21.0°C
     Tue, 21:40 - 24:00: 17.0°C
 
-Timer for Wed (0x0411 2004):    21 04 22 65 2a 82 22 90 00 00 00 00 00 00 00 00 
+Timer for Wed:
     Wed, 00:00 - 16:50: 17.0°C
     Wed, 16:50 - 21:40: 21.0°C
     Wed, 21:40 - 24:00: 17.0°C
 
-Timer for Thu (0x0411 2005):    21 05 22 65 2a 82 22 90 00 00 00 00 00 00 00 00 
+Timer for Thu:
     Thu, 00:00 - 16:50: 17.0°C
     Thu, 16:50 - 21:40: 21.0°C
     Thu, 21:40 - 24:00: 17.0°C
 
-Timer for Fri (0x0411 2006):    21 06 22 64 2a 86 22 90 00 00 00 00 00 00 00 00 
+Timer for Fri:
     Fri, 00:00 - 16:40: 17.0°C
     Fri, 16:40 - 22:20: 21.0°C
     Fri, 22:20 - 24:00: 17.0°C
@@ -84,28 +111,26 @@ Timer for Fri (0x0411 2006):    21 06 22 64 2a 86 22 90 00 00 00 00 00 00 00 00
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 sync
 
-Sync time:              17-02-06 20:56:40
+Sync time:          17-02-07 21:24:36
 
-Status (0x0411 03):     02 01 08 00 04 2a 
-Temperature:            21.0°C
-Valve:                  0%
-Mode:                   auto (08)
+Temperature:            22.0°C
+Valve:              0%
+Mode:               auto 
 Vacation mode:          off
 ```
 
 ### Program window open mode
 
 ```
-$ ./eq3.exp 00:1A:22:07:FD:03 window 16.5 01:00
+$ ./eq3.exp 00:1A:22:07:FD:03 window 16.5 2:00
 
 Window open temperature:    16.5°C
-Window open time:           01:00
+Window open time:       2:00
 
-Status (0x0411 03):         01 08 00 04 2a 
-Temperature:                21.0°C
-Valve:                      0%
-Mode:                       auto (08)
-Vacation mode:              off
+Temperature:            22.0°C
+Valve:              0%
+Mode:               auto 
+Vacation mode:          off
 ```
 
 ### Set to auto and manual mode
@@ -113,49 +138,44 @@ Vacation mode:              off
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 auto
 
-Status (0x0411 03):     02 01 08 00 04 2a 
 Temperature:            21.0°C
 Valve:                  0%
-Mode:                   auto (08)
+Mode:                   auto
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 manual
 
-Status (0x0411 03):     02 01 09 00 04 2a 
 Temperature:            21.0°C
 Valve:                  0%
-Mode:                   manual (09)
+Mode:                   manual
 Vacation mode:          off
 ```
 
-### Program day and night temperature and switch to programmed temperatures
+### Program comfort and eco temperature and switch to programmed temperatures
 
 ```
-$ ./eq3.exp 00:1A:22:07:FD:03 daynight 22.0 17.0
+$ ./eq3.exp 00:1A:22:07:FD:03 comforteco 22.0 17.0
 
-Day temperature:        22.0°C
-Night temperature:      17.0°C
+Comfort temperature:    22.0°C
+Eco temperature:        17.0°C
 
-Status (0x0411 03):     02 01 09 00 04 2d 
 Temperature:            22.5°C
 Valve:                  0%
-Mode:                   manual (09)
+Mode:                   manual
 Vacation mode:          off
 
-$ ./eq3.exp 00:1A:22:07:FD:03 day
+$ ./eq3.exp 00:1A:22:07:FD:03 comfort
 
-Status (0x0411 03):     02 01 09 00 04 2c 
 Temperature:            22.0°C
 Valve:                  0%
-Mode:                   manual (09)
+Mode:                   manual
 Vacation mode:          off
 
-$ ./eq3.exp 00:1A:22:07:FD:03 night
+$ ./eq3.exp 00:1A:22:07:FD:03 eco
 
-Status (0x0411 03):     02 01 09 0f 04 22 
 Temperature:            17.0°C
 Valve:                  15%
-Mode:                   manual (09)
+Mode:                   manual
 Vacation mode:          off
 ```
 
@@ -164,10 +184,9 @@ Vacation mode:          off
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 temp 22.5
 
-Status (0x0411 03):     02 01 09 0f 04 2d 
 Temperature:            22.5°C
 Valve:                  15%
-Mode:                   manual (09)
+Mode:                   manual
 Vacation mode:          off
 ```
 
@@ -176,18 +195,41 @@ Vacation mode:          off
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 boost
 
-Status (0x0411 03):     02 01 0d 50 04 2d 
 Temperature:            22.5°C
 Valve:                  80%
-Mode:                   boost-manual (0d)
+Mode:                   manual boost
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 boost off
 
-Status (0x0411 03):     02 01 09 0f 04 2d 
 Temperature:            22.5°C
 Valve:                  15%
-Mode:                   manual (09)
+Mode:                   manual
+Vacation mode:          off
+```
+
+### Start vacation mode
+```
+$ ./eq3.exp 00:1A:22:07:FD:03 vacation 17-03-31 21:30 14.5
+
+Vacation mode:          17-03-31 21:30 14.5°C
+
+Temperature:            14.5°C
+Valve:              0%
+Mode:               auto vacation 
+Vacation mode:          on
+Vacation until:         2017-03-31 21:30
+```
+
+### Set offset temperature
+```
+$ ./eq3.exp 00:1A:22:07:FD:03 offset 1.0
+
+Offset temperature:     1.0°C
+
+Temperature:            22.0°C
+Valve:              0%
+Mode:               auto 
 Vacation mode:          off
 ```
 
@@ -196,17 +238,15 @@ Vacation mode:          off
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 lock
 
-Status (0x0411 03):     02 01 29 2a 04 2d 
 Temperature:            22.5°C
 Valve:                  42%
-Mode:                   locked (29)
+Mode:                   locked
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 unlock
 
-Status (0x0411 03):     02 01 09 2a 04 2d 
 Temperature:            22.5°C
 Valve:                  42%
-Mode:                   manual (09)
+Mode:                   manual
 Vacation mode:          off
 ```
