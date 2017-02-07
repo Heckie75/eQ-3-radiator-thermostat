@@ -61,14 +61,14 @@ Others:
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 status
 
-Device mac:         00:1A:22:07:FD:03
-Device name (0x0321):       CC-RT-BLE
-Device vendor (0x0311):     eq-3
+Device mac:              00:1A:22:07:FD:03
+Device name (0x0321):    CC-RT-BLE
+Device vendor (0x0311):  eq-3
 
-Temperature:            22.0°C
-Valve:              0%
-Mode:               auto 
-Vacation mode:          off
+Temperature:             22.0°C
+Valve:                   0%
+Mode:                    auto 
+Vacation mode:           off
 
 Timer for Sat:
     Sat, 00:00 - 07:40: 17.0°C
@@ -111,11 +111,11 @@ Timer for Fri:
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 sync
 
-Sync time:          17-02-07 21:24:36
+Sync time:              17-02-07 21:24:36
 
 Temperature:            22.0°C
-Valve:              0%
-Mode:               auto 
+Valve:                  0%
+Mode:                   auto 
 Vacation mode:          off
 ```
 
@@ -215,8 +215,8 @@ $ ./eq3.exp 00:1A:22:07:FD:03 vacation 17-03-31 21:30 14.5
 Vacation mode:          17-03-31 21:30 14.5°C
 
 Temperature:            14.5°C
-Valve:              0%
-Mode:               auto vacation 
+Valve:                  0%
+Mode:                   auto vacation 
 Vacation mode:          on
 Vacation until:         2017-03-31 21:30
 ```
@@ -228,8 +228,8 @@ $ ./eq3.exp 00:1A:22:07:FD:03 offset 1.0
 Offset temperature:     1.0°C
 
 Temperature:            22.0°C
-Valve:              0%
-Mode:               auto 
+Valve:                  0%
+Mode:                   auto 
 Vacation mode:          off
 ```
 
@@ -240,7 +240,7 @@ $ ./eq3.exp 00:1A:22:07:FD:03 lock
 
 Temperature:            22.5°C
 Valve:                  42%
-Mode:                   locked
+Mode:                   manual locked
 Vacation mode:          off
 
 $ ./eq3.exp 00:1A:22:07:FD:03 unlock

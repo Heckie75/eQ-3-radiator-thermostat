@@ -31,7 +31,7 @@
 package require Tclx
 
 # sets output to stdout and debug
-log_user 0
+log_user 1
 
 set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3\n"
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
@@ -45,9 +45,9 @@ set HELP(window) "\
 \                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
 \                                                 hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05"
 set HELP(auto) "\
-  auto                                           - Sets auto mode"
-set HELP(manual) "\
-  manual                                         - Sets manual mode"
+  auto                                           - Sets auto mode and deactivates vacation mode if active."
+set HELP(manual) "
+  manual                                         - Sets manual mode and deactivates vacation mode if active."
 set HELP(comforteco) "\
   comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C\n\
 \                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5"
@@ -107,6 +107,7 @@ set HANDLES(notification)      "0421"
 set REQUESTS(getStatus)        "03"
 set REQUESTS(setTime)          "03"
 
+set REQUESTS(setTimer)         "10"
 set REQUESTS(setComfortEco)    "11"
 set REQUESTS(setOffset)        "13"
 set REQUESTS(setWindowOpen)    "14"
@@ -159,7 +160,6 @@ set thermostat(temperature)    ""
 set thermostat(vacation_date)  ""
 set thermostat(vacation_time)  ""
 
-#set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Sat+Sun Mon-Fri Mon-Sun"
 set DAYS                    "Sat Sun Mon Tue Wed Thu Fri"
 
 proc log {l} {
@@ -393,6 +393,16 @@ proc minutesToTime {value multiplicator} {
   return $time
 }
 
+proc timeToMinutes {daytime devider} { 
+  set part [split $daytime ":"]
+  scan [lindex $part 0] %d hours
+  scan [lindex $part 1] %d minutes	
+	      
+  set enctime [expr ($hours * 60 + $minutes) / $devider]
+  
+  return $enctime
+}
+
 proc getModeName {} {
   global MODE
   global MODE_BY_NAME
@@ -519,7 +529,7 @@ proc printTimers {} {
     append out "\n"
     append out "Timer for [lindex $DAYS $day]"
     if {[log_user] != 0} {  
-      append out "(0x$HANDLES(request) $REQUESTS(getTimer)[decimalToHex $day]):\t$thermostat("timer_raw_$day")\n"
+      append out " (0x$HANDLES(request) $REQUESTS(getTimer)[decimalToHex $day]):\t$thermostat("timer_raw_$day")\n"
     } else {
       append out ":\n" 
     }
@@ -562,11 +572,7 @@ proc setVacationMode {date daytime temp} {
   scan [lindex $part 1] %d month
   scan [lindex $part 2] %d day
 
-  set part [split $daytime ":"]
-  scan [lindex $part 0] %d hours
-  scan [lindex $part 1] %d minutes	
-	
-  set enctime [expr ($hours * 60 + $minutes) / 30]
+  set enctime [timeToMinutes $daytime 30]
   set enctemp [expr ($temp * 2 + 128)]
 	
   set raw_status [writeRequest $REQUESTS(setVacationMode) "[decimalToHex $enctemp][decimalToHex $day][decimalToHex $year][decimalToHex $enctime][decimalToHex $month]"]
@@ -574,6 +580,32 @@ proc setVacationMode {date daytime temp} {
   puts "\nVacation mode:\t\t\t$date $daytime $temp°C"
   parseMode $raw_status
   puts "\n[printStatus]"    
+}
+
+proc setTimer {params} {
+  global REQUESTS
+  global DAYS
+	
+  for {set day 0} {$day < [llength $DAYS]} {incr day} {
+    if {[string tolower [lindex $DAYS $day]] == [lindex $params 0]} {
+      break
+    }
+  }
+	
+  set enctimer [decimalToHex $day]
+	
+  set timer 1
+  while {$timer < [llength $params]} {
+    append enctimer [tempToHex [lindex $params $timer]]
+    append enctimer [decimalToHex [timeToMinutes [lindex $params [expr $timer + 1]] 10]]
+    set timer [expr $timer + 2]
+  }
+  	
+  set raw_status [writeRequest $REQUESTS(setTimer) $enctimer]
+
+  puts "Timer set: $params"
+  #parseMode $raw_status
+  #puts "\n[printStatus]"    	
 }
 
 proc setComfortEco {comfort eco} {
@@ -658,7 +690,21 @@ proc setTemperature {temp} {
   puts "\n[printStatus]"  
 }
 
-proc otherCommand {command} {
+proc clear {} {
+  global REQUESTS
+  
+  writeRequest $REQUESTS(clear) ""
+  puts "\nBuffer for last request cleared!"  
+}
+
+proc reset {} {
+  global REQUESTS
+  
+  writeRequest $REQUESTS(reset) ""
+  puts "\nFactory reset done!"  
+}
+
+proc otherRequest {command} {
   global REQUESTS
   
   set raw_status [writeRequest $REQUESTS($command) ""]
@@ -687,7 +733,7 @@ proc doCommand {} {
     ^comforteco* {
       checkArgs $c 2 "comforteco" {^comforteco [0-9]{1,2}\.?[05]? [0-9]{1,2}\.?[05]?$}	    
       init 0
-      setDayNight [lindex $c 1] [lindex $c 2]
+      setComfortEco [lindex $c 1] [lindex $c 2]
     }
     ^window* {
       checkArgs $c 2 "window" {^window [0-9]{1,2}\.?[05]? [0-9]{1,2}:[0-9][05]$}	    
@@ -719,6 +765,17 @@ proc doCommand {} {
       checkArgs $c 3 "vacation" {^vacation [0-9]{2}-[01][0-9]-[0-3][0-9] [0-2][0-9]:[03][0] [0-9]{1,2}\.?[05]?$}	    
       init 0
       setVacationMode [lindex $c 1] [lindex $c 2] [lindex $c 3]
+    }
+    ^timer* {
+      checkArgs $c 3 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun) [0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0].*$}
+      set params [lindex $c 1]
+      for {set i 2} {$i < [llength $c]} {set i [expr $i + 2]} {
+	set t "[lindex $c $i] [lindex $c [expr $i + 1]]"
+        checkArgs $t 1 "timer" {^[0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0]$}
+        append params " $t"
+      }
+      init 0
+      setTimer $params
     }	  
     ^on$ {	    
       init 0
@@ -743,19 +800,19 @@ proc doCommand {} {
     }
     ^lock$ {
       init 0
-      otherCommand "lock"
+      otherRequest "lock"
     }
     ^unlock$ {
       init 0
-      otherCommand "unlock"
+      otherRequest "unlock"
     }
     ^clear$ {
       init 0
-      otherCommand "clear"
+      clear
     }
     ^reset$ {
       init 0
-      otherCommand "reset"
+      reset
     }
     ^.*$ {
       help
