@@ -127,12 +127,12 @@ Vacation mode:          off
 $ ./eq3.exp 00:1A:22:07:FD:03 window 16.5 2:00
 
 Window open temperature:    16.5°C
-Window open time:       2:00
+Window open time:           2:00
 
-Temperature:            22.0°C
-Valve:              0%
-Mode:               auto 
-Vacation mode:          off
+Temperature:                22.0°C
+Valve:                      0%
+Mode:                       auto 
+Vacation mode:              off
 ```
 
 ### Set to auto and manual mode
@@ -230,9 +230,7 @@ $ ./eq3.exp 00:1A:22:07:FD:03 timer wed 19 03:00 23 06:00 19 09:00 23 12:00 19 1
 $ ./eq3.exp 00:1A:22:07:FD:03 timer wed
 
 Timer for Wed:
-    Wed, 00:00 - 16:40: 19.5°C
-    Wed, 16:40 - 22:00: 21.0°C
-    Wed, 22:00 - 24:00: 19.5°C
+...
 ```
 
 ### Set offset temperature

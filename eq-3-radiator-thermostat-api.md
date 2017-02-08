@@ -199,7 +199,7 @@ Switch to the comfort temperature by the following request:
 Request:
 ```
 char-write-req 0411 43
-               |    + Byte 1: "43" indicates request in order to change to comfort temperature
+               |    +---- Byte 1: "43" indicates request in order to change to comfort temperature
                + request via handle 411
 ```
 
@@ -215,7 +215,7 @@ Switch to the eco temperature by the following request:
 Request:
 ```
 char-write-req 0411 43
-               |    + Byte 1: "44" indicates request in order to change to eco temperature
+               |    +---- Byte 1: "44" indicates request in order to change to eco temperature
                + request via handle 411
 ```
 
@@ -346,3 +346,6 @@ Timers can be read and written via bluetooth.
 
 ### Factory reset 
 
+### What's about the PIN that everyone of us has entered?
+I don't know. There is nothing to do in order to control the thermostat via bluetooth and gatttool!
+Seems to be fake ;-)
