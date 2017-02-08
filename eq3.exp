@@ -75,9 +75,11 @@ set HELP(boost) "\
 set HELP(boost_off) "\
   boost off                                      - Deactivates boost mode"
 set HELP(timer) "\
-  timer <day> <temp> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time\n\
+  timer <day>                                    - Reads timer for given day\n\
+  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time\n\
 \                                                 day:  mon, tue, wed, thu, fri, sat, sun\n\
-\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
+\                                                 base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
+\                                                 target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
 \                                                 hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40"
 set HELP(lock) "\
   lock                                           - Locks thermostat (LOC). No PIN required!"
@@ -269,7 +271,7 @@ proc init {level} {
       readMode
     }
     if {$level & $INIT(timer)} {
-      readTimer
+      readTimers
     }
   } else {
     puts "Connection failed."
@@ -298,9 +300,10 @@ proc readHandle {handle} {
 
 proc writeRequest {command value} {
   global HANDLES
+  global REQUESTS
   global DELAY
   global thermostat
-
+  
   log "writeRequest: char-write-req $HANDLES(request) $command $value"
   set thermostat(last_request) "$command $value"
 
@@ -454,28 +457,33 @@ proc parseMode {raw_status} {
   }
 }
 
-proc readTimer {} {
-  global REQUESTS
-  global DAYS	
+proc readTimer {day} {
+  global REQUESTS	
   global thermostat
+
+  set raw_timer [writeRequest $REQUESTS(getTimer) [decimalToHex $day]]
+  set thermostat("timer_raw_$day") $raw_timer
+	
+  set event 1
+  set start "00:00"
+  while {$event <= 7 && $start != "24:00"} {
+    set key "[lindex $day 0]_[lindex $event 0]"
+    set thermostat("timer_start_$key") $start
+    set end [minutesToTime [hexToDecimal [lindex $raw_timer [expr 2 * $event + 1 ]]] 10]
+    set thermostat("timer_end_$key") $end
+    set thermostat("timer_temperature_$key") [hexToTemperature [lindex $raw_timer [expr 2 * $event]]]
+	  
+    incr event
+    set start $end
+  }
+}
+
+proc readTimers {} {
+  global DAYS
 
   set days [llength $DAYS]
   for {set day 0} {$day < $days} {incr day} {
-    set raw_timer [writeRequest $REQUESTS(getTimer) [decimalToHex $day]]
-    set thermostat("timer_raw_$day") $raw_timer
-	
-    set event 1
-    set start "00:00"
-    while {$event <= 7 && $start != "24:00"} {
-      set key "[lindex $day 0]_[lindex $event 0]"
-      set thermostat("timer_start_$key") $start
-      set end [minutesToTime [hexToDecimal [lindex $raw_timer [expr 2 * $event + 1 ]]] 10]
-      set thermostat("timer_end_$key") $end
-      set thermostat("timer_temperature_$key") [hexToTemperature [lindex $raw_timer [expr 2 * $event]]]
-	  
-      incr event
-      set start $end
-    }
+    readTimer $day
   }
 }
 
@@ -518,28 +526,36 @@ proc printStatus {} {
   return $out
 }
 
-proc printTimers {} {
+proc printTimer {day} {
+  global DAYS
   global HANDLES
   global REQUESTS
-  global DAYS
   global thermostat
+	
+  append out "\n"
+  append out "Timer for [lindex $DAYS $day]"
+  if {[log_user] != 0} {  
+    append out " (0x$HANDLES(request) $REQUESTS(getTimer)[decimalToHex $day]):\t$thermostat("timer_raw_$day")\n"
+  } else {
+    append out ":\n" 
+  }
+  for {set event 1} {$event <= 7} {incr event} {
+    set key "[lindex $day 0]_[lindex $event 0]"
+    append out "\t[lindex $DAYS $day], $thermostat("timer_start_$key") - $thermostat("timer_end_$key"):\t$thermostat("timer_temperature_$key")°C\n"
+   if {"24:00" == "$thermostat("timer_end_$key")"} {
+      break
+    }
+  }
+  return $out
+}
 
+proc printTimers {} {
+  global DAYS
+
+  set out ""
   set days [llength $DAYS]
   for {set day 0} {$day < $days} {incr day} {
-    append out "\n"
-    append out "Timer for [lindex $DAYS $day]"
-    if {[log_user] != 0} {  
-      append out " (0x$HANDLES(request) $REQUESTS(getTimer)[decimalToHex $day]):\t$thermostat("timer_raw_$day")\n"
-    } else {
-      append out ":\n" 
-    }
-    for {set event 1} {$event <= 7} {incr event} {
-      set key "[lindex $day 0]_[lindex $event 0]"
-      append out "\t[lindex $DAYS $day], $thermostat("timer_start_$key") - $thermostat("timer_end_$key"):\t$thermostat("timer_temperature_$key")°C\n"
-      if {"24:00" == "$thermostat("timer_end_$key")"} {
-        break
-      }
-    }
+    append out [printTimer $day]
   }	
   
   return $out
@@ -582,9 +598,21 @@ proc setVacationMode {date daytime temp} {
   puts "\n[printStatus]"    
 }
 
+proc getTimer {weekday} {
+  global DAYS	
+  for {set day 0} {$day < [llength $DAYS]} {incr day} {
+   if {[string tolower [lindex $DAYS $day]] == [lindex $weekday 0]} {
+      break
+    }
+  }
+  readTimer $day
+  puts [printTimer $day]
+}
+
 proc setTimer {params} {
   global REQUESTS
   global DAYS
+  global thermostat
 	
   for {set day 0} {$day < [llength $DAYS]} {incr day} {
     if {[string tolower [lindex $DAYS $day]] == [lindex $params 0]} {
@@ -595,17 +623,22 @@ proc setTimer {params} {
   set enctimer [decimalToHex $day]
 	
   set timer 1
-  while {$timer < [llength $params]} {
+  set schedule ""
+  while {$timer < [llength $params] && $timer < 14} {
     append enctimer [tempToHex [lindex $params $timer]]
-    append enctimer [decimalToHex [timeToMinutes [lindex $params [expr $timer + 1]] 10]]
+    set schedule [lindex $params [expr $timer + 1]]
+    append enctimer [decimalToHex [timeToMinutes $schedule 10]]
     set timer [expr $timer + 2]
   }
-  	
-  set raw_status [writeRequest $REQUESTS(setTimer) $enctimer]
+  if {$schedule != "24:00"} {
+    append enctimer [tempToHex [lindex $params 1]]
+    append enctimer [decimalToHex [timeToMinutes "24:00" 10]]
+  }
+  append enctimer $REQUESTS(clear)
+  set enctimer [string range $enctimer [expr [llength $enctimer] - 1] 29]
+  writeRequest $REQUESTS(setTimer) $enctimer
 
   puts "Timer set: $params"
-  #parseMode $raw_status
-  #puts "\n[printStatus]"    	
 }
 
 proc setComfortEco {comfort eco} {
@@ -767,15 +800,23 @@ proc doCommand {} {
       setVacationMode [lindex $c 1] [lindex $c 2] [lindex $c 3]
     }
     ^timer* {
-      checkArgs $c 3 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun) [0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0].*$}
       set params [lindex $c 1]
-      for {set i 2} {$i < [llength $c]} {set i [expr $i + 2]} {
-	set t "[lindex $c $i] [lindex $c [expr $i + 1]]"
-        checkArgs $t 1 "timer" {^[0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0]$}
-        append params " $t"
+      if {[llength $c] > 16} {	
+        checkArgs $c 1 "timer" {^$}
+      } elseif {[llength $c] == 2} {
+        checkArgs $c 1 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun)$}
+        init 0	      
+        getTimer $params
+      } else {
+        checkArgs $c 3 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun) [0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0].*$}
+        init 0
+        for {set i 2} {$i < [llength $c]} {set i [expr $i + 2]} {
+          set t "[lindex $c $i] [lindex $c [expr $i + 1]]"
+          checkArgs $t 1 "timer" {^[0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0]$}
+          append params " $t"
+        }
+        setTimer $params
       }
-      init 0
-      setTimer $params
     }	  
     ^on$ {	    
       init 0

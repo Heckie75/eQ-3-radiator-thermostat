@@ -34,9 +34,11 @@ Timers:
                                                   yy-mm-dd: until date, e.g. 17-03-31
                                                   hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
- timer <day> <temp> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
+ timer <day>                                    - Reads timer for given day
+ timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
                                                   day:  mon, tue, wed, thu, fri, sat, sun
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
                                                   hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40
 
 Configuration:
@@ -219,6 +221,18 @@ Valve:                  0%
 Mode:                   auto vacation 
 Vacation mode:          on
 Vacation until:         2017-03-31 21:30
+```
+
+### Set timer for Wednesday with 7 events and read it
+```
+$ ./eq3.exp 00:1A:22:07:FD:03 timer wed 19 03:00 23 06:00 19 09:00 23 12:00 19 15:00 23 18:00 24 24:00
+
+$ ./eq3.exp 00:1A:22:07:FD:03 timer wed
+
+Timer for Wed:
+    Wed, 00:00 - 16:40: 19.5°C
+    Wed, 16:40 - 22:00: 21.0°C
+    Wed, 22:00 - 24:00: 19.5°C
 ```
 
 ### Set offset temperature
