@@ -33,6 +33,9 @@ Timers:
  vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C
                                                   yy-mm-dd: until date, e.g. 17-03-31
                                                   hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+ vacation <hhh> <temp>                          - Activates vacation mode for given period in hours and temperature in °C
+                                                  hh: Period in hours
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  timer <day>                                    - Reads timer for given day
  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
@@ -210,7 +213,7 @@ Mode:                   manual
 Vacation mode:          off
 ```
 
-### Start vacation mode
+### Start vacation mode 
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 vacation 17-03-31 21:30 14.5
 
@@ -221,6 +224,16 @@ Valve:                  0%
 Mode:                   auto vacation 
 Vacation mode:          on
 Vacation until:         2017-03-31 21:30
+
+$ ./eq3.exp 00:1A:22:07:FD:03 vacation 120 19
+
+Vacation mode:          17-02-14 21:30 19°C
+
+Temperature:            19.0°C
+Valve:              0%
+Mode:               auto vacation 
+Vacation mode:          on
+Vacation until:         2017-02-14 21:30
 ```
 
 ### Set timer for Wednesday with 7 events and read it
