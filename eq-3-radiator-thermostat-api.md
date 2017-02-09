@@ -214,7 +214,7 @@ Switch to the eco temperature by the following request:
 
 Request:
 ```
-char-write-req 0411 43
+char-write-req 0411 44
                |    +---- Byte 1: "44" indicates request in order to change to eco temperature
                + request via handle 411
 ```
@@ -258,7 +258,7 @@ char-write-req 0411 413c
 The thermostat returns status via notification handle simular to what we have seen before:
 ```
 Notification handle = 0x0421 value: 02 01 00 37 04 3c
-                                          + mode, still "auto" althougt I expect that timers are off know!
+                                          + mode, still "auto" althougt I expect that timers are off now!
 ```
 
 ### Set thermostat off
@@ -278,7 +278,7 @@ char-write-req 0411 4109
 The thermostat returns status via notification handle simular to what we have seen before:
 ```
 Notification handle = 0x0421 value: 02 01 00 37 04 09
-                                          + mode, still "auto" althougt I expect that timers are off know!
+                                          + mode, still "auto" althougt I expect that timers are off now!
 ```
 
 ### Activate boost mode
