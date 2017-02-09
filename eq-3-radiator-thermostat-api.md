@@ -364,17 +364,17 @@ n = No. of event which must be between 1 and 7
 - Byte 2 * n + 1: Temperature between event n - 1 and event n
 
 It seems to be very important that:
-1. The time of the final event must have the value for "24:00"
-2. All events after the final event must be filled with zeros!
+1) The time of the final event must have the value for "24:00"
+2) All events after the final event must be filled with zeros!
 
 #### Days (Byte 2)
-00 = Saturday
-01 = Sunday
-02 = Monday
-03 = Tuesday
-04 = Wednesday
-05 = Thursday
-06 = Friday
+- 00 = Saturday
+- 01 = Sunday
+- 02 = Monday
+- 03 = Tuesday
+- 04 = Wednesday
+- 05 = Thursday
+- 06 = Friday
 
 #### Time in timer
 The time is encoded in intervals of 10 minutes.
@@ -432,17 +432,19 @@ n = No. of event which must be between 1 and 7
 - Byte 2 * n + 1: Temperature between event n - 1 and event n
 
 It seems to be very important that:
-1. The time of the final event must have the value for "24:00"
-2. All events after the final event must be filled with zeros!
+
+1) The time of the final event must have the value for "24:00"
+2) All events after the final event must be filled with zeros!
 
 #### Days (Byte 2)
-00 = Saturday
-01 = Sunday
-02 = Monday
-03 = Tuesday
-04 = Wednesday
-05 = Thursday
-06 = Friday
+
+- 00 = Saturday
+- 01 = Sunday
+- 02 = Monday
+- 03 = Tuesday
+- 04 = Wednesday
+- 05 = Thursday
+- 06 = Friday
 
 #### Time in timer
 The time is encoded in intervals of 10 minutes.
