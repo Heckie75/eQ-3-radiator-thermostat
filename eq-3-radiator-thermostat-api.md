@@ -35,29 +35,29 @@ Data will be returned via notification handle
 Notification handle = 0x0421 value: 02 01 00 00 04 2a
 ```
 
-### Modes (Byte 3) ###
+### Modes (Byte 3)
 The thermostat has the following modes which can be active at one and the same time:
-- "auto"        - Bit 0 is not set (mask 0x00)
-- "manual"      - Bit 0 is set (mask 0x01)
-- "vacation"    - Bit 1 is set (mask 0x02)
-- "boost"       - Bit 2 is set (mask 0x04)
-- "dst"         - Bit 3 is set (mask 0x08)
-- "open window" - Bit 4 is set (mask 0x10)
-- "locked"      - Bit 5 is set (mask 0x20)
-- "unknown"     - Bit 6 is set (mask 0x40)
-- "low battery" - Bit 7 is set (mask 0x80)
+- "auto"        - Bit 1 is not set (mask 0x00)
+- "manual"      - Bit 1 is set (mask 0x01)
+- "vacation"    - Bit 2 is set (mask 0x02)
+- "boost"       - Bit 3 is set (mask 0x04)
+- "dst"         - Bit 4 is set (mask 0x08)
+- "open window" - Bit 5 is set (mask 0x10)
+- "locked"      - Bit 6 is set (mask 0x20)
+- "unknown"     - Bit 7 is set (mask 0x40)
+- "low battery" - Bit 8 is set (mask 0x80)
 
-### Valve (Byte 4) ###
+### Valve (Byte 4)
 Byte 4 represents the percentage value of the valve. However, I haven't seen a value more than 80% so far even if boost mode is running.
 
-### Current target temperature (Byte 6) ###
+### Current target temperature (Byte 6)
 Byte 6 represents the target temperature. It has to be calculated.
 
 ```
 temp = dec(value of byte 6) / 2.0
 ```  
 
-### Vacation data ###
+### Vacation data
 The bytes 7 to 9 are only returned on case that vacation mode is active. 
 - Byte 8: Vacation year (yy) in hex
 - Byte 9: Vacation month (mm) in hex
@@ -77,7 +77,7 @@ char-write-req 0411 03
 
 Notification handle = 0x0421 value: 02 01 00 00 04 2a
                       |             |  |  |  |  |  + Byte 6: Current temperature in 0.5°C intervals in hex, here 21°C
-                      |             |  |  |  |  +--- Byte: 5: Always "04" 
+                      |             |  |  |  |  +--- Byte 5: Always "04" 
                       |             |  |  |  +------ Byte 4: Current level of valve in percent in hex
                       |             |  |  +--------- Byte 3: Current mode, here "auto", see modes
                       |             |  +------------ Byte 2: Always "01"
@@ -156,8 +156,8 @@ In manual mode the thermostat does not follow the configured timers. The target 
 
 Request:
 ```
-char-write-req 0411 4000
-               |    | + Byte 2: Set "01" for mode "manual"
+char-write-req 0411 4040
+               |    | + Byte 2: Set "40" for mode "manual"
                |    +-- Byte 1: "40" indicates request in order to change mode
                + request via handle 411
 ```
@@ -323,28 +323,265 @@ From my point of view it is good enough to have the possibility to have a schedu
 Timers can be read and written via bluetooth. 
 
 ### Read timer for a day
+The programmed timers can be read for every single day. There can be up to 7 changes of temperature per day.
+
+Request
+```
+char-write-req 0411 2002
+               |    | +---------- Byte 2: "00" day which will be queried, starting with "00" for Saturday and "06" for Friday
+               |    +------------ Byte 1: "20" indicates request in order to request timer for given day
+               + request via handle 411
+```
+
+The thermostat returns the data for timer of that day via notification handle 0x0421:
+```
+Notification handle = 0x0421 value: 21 02 27 24 29 84 27 90 00 00 00 00 00 00 00 00 
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  +-- Byte 16: Encoded final time of seventh event in 10 minutes steps in hex, must be "24:00"
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  |  +----- Byte 15: Temperature between sixth and seventh event, here it is not set
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  +-------- Byte 14: Encoded time of sixth event in 10 minutes steps in hex, here not set
+                                    |  |  |  |  |  |  |  |  |  |  |  |  +----------- Byte 13: Temperature between fifth and sixth event, here it is not set
+                                    |  |  |  |  |  |  |  |  |  |  |  +-------------- Byte 12: Encoded time of fifth event in 10 minutes steps in hex, here not set
+                                    |  |  |  |  |  |  |  |  |  |  +----------------- Byte 11: Temperature between forth and fifth event, here it is not set
+                                    |  |  |  |  |  |  |  |  |  +-------------------- Byte 10: Encoded time of forth event in 10 minutes steps in hex, here not set
+                                    |  |  |  |  |  |  |  |  +----------------------- Byte 9: Temperature between third and forth event, here it is not set
+                                    |  |  |  |  |  |  |  +-------------------------- Byte 8: Encoded time of third event in 10 minutes steps in hex, here the final event that must always be 24:00
+                                    |  |  |  |  |  |  +----------------------------- Byte 7: Temperature between second event and third event, here 20.5°C
+                                    |  |  |  |  |  +-------------------------------- Byte 6: Encoded time of second event in 10 minutes steps in hex, here 22:00
+                                    |  |  |  |  +----------------------------------- Byte 5: Temperature between first event and second event, here 19.5°C
+                                    |  |  |  +-------------------------------------- Byte 4: Encoded time of first event in 10 minutes steps in hex, here 06:00
+                                    |  |  +----------------------------------------- Byte 3: Temperature between midnight and first event, here 19.5°C
+                                    |  +-------------------------------------------- Byte 2: Day, starting with "00" for Saturday and "06" for Friday, see Days
+                                    +----------------------------------------------- Byte 1: Always "21"
+```
+
+#### Timer schema
+- Byte 2: Day of timer
+- Byte 3: Temperature between midnight and first event 
+
+n = No. of event which must be between 1 and 7
+
+- Byte 2 * n + 2: Encoded time of event n in 10 minutes steps in hex. If it is the last event it must be "24:00" (hex: "90")
+- Byte 2 * n + 1: Temperature between event n - 1 and event n
+
+It seems to be very important that:
+1. The time of the final event must have the value for "24:00"
+2. All events after the final event must be filled with zeros!
+
+#### Days (Byte 2)
+00 = Saturday
+01 = Sunday
+02 = Monday
+03 = Tuesday
+04 = Wednesday
+05 = Thursday
+06 = Friday
+
+#### Time in timer
+The time is encoded in intervals of 10 minutes.
+```
+hh = int(dec(value of byte) / 6)
+mm = dec(value of byte 10) modulo 6 * 10
+```
+
+#### Temperature
+The temperature is encoded in intervals of 0.5
+```
+temp = dec(value of byte) / 2.0
+```  
 
 ### Set timer for a day
+Setting of a timer program for a weekday is very simular to reading timers.
+
+Request
+```
+char-write-req 0411 100622632a8922900000000000000000
+               |    | | | | | | | | | | | | | | | +-- Byte 16: Encoded final time of seventh event in 10 minutes steps in hex, must be "24:00"
+               |    | | | | | | | | | | | | | | +---- Byte 15: Temperature between sixth and seventh event, here it is not set
+               |    | | | | | | | | | | | | | +------ Byte 14: Encoded time of sixth event in 10 minutes steps in hex, here not set
+               |    | | | | | | | | | | | | +-------- Byte 13: Temperature between fifth and sixth event, here it is not set
+               |    | | | | | | | | | | | +---------- Byte 12: Encoded time of fifth event in 10 minutes steps in hex, here not set
+               |    | | | | | | | | | | +------------ Byte 11: Temperature between forth and fifth event, here it is not set
+               |    | | | | | | | | | +-------------- Byte 10: Encoded time of forth event in 10 minutes steps in hex, here not set
+               |    | | | | | | | | +---------------- Byte 9: Temperature between third and forth event, here it is not set
+               |    | | | | | | | +------------------ Byte 8: Encoded time of third event in 10 minutes steps in hex, here the final event that must always be 24:00
+               |    | | | | | | +-------------------- Byte 7: Temperature between second event and third event, here 17.5°C
+               |    | | | | | +---------------------- Byte 6: Encoded time of second event in 10 minutes steps in hex, here 22:50
+               |    | | | | +------------------------ Byte 5: Temperature between first event and second event, here 21.0°C
+               |    | | | +-------------------------- Byte 4: Encoded time of first event in 10 minutes steps in hex, here 16:30
+               |    | | +---------------------------- Byte 3: Temperature between midnight and first event, here 17.5°C
+               |    | +------------------------------ Byte 2: "06" day which will be programmed, here Friday
+               |    +-------------------------------- Byte 1: "10" indicates request in order to program timer
+               + request via handle 411
+```
+
+The thermostat returns via notification handle
+```
+Notification handle = 0x0421 value: 02 02 06 
+                                          + mode, the day that has been programmedm here Friday
+```
+
+#### Timer schema
+
+- Byte 1: "10" indicates request in order to program timer
+- Byte 2: Day of timer
+- Byte 3: Temperature between midnight and first event 
+
+n = No. of event which must be between 1 and 7
+
+- Byte 2 * n + 2: Encoded time of event n in 10 minutes steps in hex. If it is the last event it must be "24:00" (hex: "90")
+- Byte 2 * n + 1: Temperature between event n - 1 and event n
+
+It seems to be very important that:
+1. The time of the final event must have the value for "24:00"
+2. All events after the final event must be filled with zeros!
+
+#### Days (Byte 2)
+00 = Saturday
+01 = Sunday
+02 = Monday
+03 = Tuesday
+04 = Wednesday
+05 = Thursday
+06 = Friday
+
+#### Time in timer
+The time is encoded in intervals of 10 minutes.
+```
+hh = int(dec(value of byte) / 6)
+mm = dec(value of byte) modulo 6 * 10
+```
+
+#### Temperature
+The temperature is encoded in intervals of 0.5
+```
+value of byte = hex(temp * 2.0)
+```  
 
 ## Configuration
-
 ### Configure comfort and eco temperature
+The comfort temperature (sun symbol) and the eco temperature (night symbol) will be programmed by a single request. 
+
+Request
+```
+char-write-req 0411 112b23
+               |    | | | 
+               |    | | +---------------------------- Byte 3: Temperature for eco mode, here 17.5°C 
+               |    | +------------------------------ Byte 2: Temperature for comfort mode, here 21.5°C
+               |    +-------------------------------- Byte 1: "11" indicates request in order to program comfort and eco temperature
+               + request via handle 411
+```
+
+The thermostat returns status via notification handle simular to the normal status that we have seen before:
+```
+Notification handle = 0x0421 value: 02 01 00 00 04 2a
+```
 
 ### Configure window open mode
+The window open mode can be programmed as follows:
+
+Request
+```
+char-write-req 0411 14191e
+               |    | | | 
+               |    | | +---------------------------- Byte 3: Encoded period in 5 minutes steps in hex, here 150 minutes (02:30)
+               |    | +------------------------------ Byte 2: Temperature for open window mode, here 12.5°C
+               |    +-------------------------------- Byte 1: "14" indicates request in order to program open window mode
+               + request via handle 411
+```
+
+The thermostat returns status via notification handle simular to the normal status that we have seen before:
+```
+Notification handle = 0x0421 value: 02 01 00 00 04 2a
+```
 
 ### Configure offset temperature
+The offset temperature can be programmed as follows:
+
+Request
+```
+char-write-req 0411 1304
+               |    | |
+               |    | |
+               |    | +------------------------------ Byte 2: Encoded offset temperature must be between -3.5°C and 3.5°C in steps of 0.5°C starting at -3.5°C
+               |    +-------------------------------- Byte 1: "13" indicates request in order to configure offset temperature
+               + request via handle 411
+```
+
+The thermostat returns status via notification handle simular to the normal status that we have seen before:
+```
+Notification handle = 0x0421 value: 02 01 00 00 04 2a
+```
+
+### Offset temperature
+The offest temperature is encoded in intervals of 0.5 starting at -3.5°C
+```
+value of byte = hex((temp + 3.5) * 2.0)
+```  
 
 ## Others
 
 ### Lock thermostat
+The thermostat can be locked by this request:
+
+Request
+```
+char-write-req 0411 8001
+               |    | |
+               |    | |
+               |    | +------------------------------ Byte 2: "01" for lock thermostat
+               |    +-------------------------------- Byte 1: "80" indicates request in order to lock/unlock thermostat
+               + request via handle 411
+```
+
+The thermostat returns status via notification handle simular to the normal status that we have seen before:
+```
+Notification handle = 0x0421 value: 02 01 00 00 04 2a
+```
 
 ### Unlock thermostat
+The thermostat can be locked by this request:
+
+Request
+```
+char-write-req 0411 8000
+               |    | |
+               |    | |
+               |    | +------------------------------ Byte 2: "00" for unlock thermostat
+               |    +-------------------------------- Byte 1: "80" indicates request in order to lock/unlock thermostat
+               + request via handle 411
+```
+
+The thermostat returns status via notification handle simular to the normal status that we have seen before:
+```
+Notification handle = 0x0421 value: 02 01 00 00 04 2a
+```
 
 ### Read latest command request
+As you have seen all commands will be pushed via write request on handle 0x0411. The thermostat seems to remember the value that has been pushed before so that you can read it afterwards via char-read-hnd.
 
-### Clear latest command request
+This was also very helpful in order to understand what the official app sends to the thermostat ;-)
+
+```
+char-read-hnd 0411
+
+Characteristic value/descriptor: 03 11 02 09 14 2e 2e 90 00 00 00 00 00 00 00 00 
+```
+
+**Note** The thermostat does not overwrite the whole value. It overwrites just the length of bytes that has been sent. Therefore you should clear the buffer before use it for analysis. See next.
+
+```
+char-write-req 0411 00000000000000000000000000000000
+```
 
 ### Factory reset 
+In other forums I have read that there is this command in order to reset the thermostat to factory settings. Actually I haven't double-checked it. 
+
+Request
+```
+char-write-req 0411 f0
+```
+
+Since I haven't tried it out, I don't know what the thermostat will do afterwards. 
 
 ### What's about the PIN that everyone of us has entered?
 I don't know. There is nothing to do in order to control the thermostat via bluetooth and gatttool!
