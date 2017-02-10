@@ -16,8 +16,8 @@ Status / sync:
                                                   (in debug mode also last command even of official app, set log_user to 1 in code!)
 
 Mode:
- auto                                           - Sets auto mode
- manual                                         - Sets manual mode
+ auto                                           - Sets auto mode and deactivates vacation mode if active.
+ manual                                         - Sets manual mode and deactivates vacation mode if active.
 
 Temperature:
  comfort                                        - Sets target temperature to programmed comfort temperature
@@ -33,22 +33,22 @@ Timers:
  vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C
                                                   yy-mm-dd: until date, e.g. 17-03-31
                                                   hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  vacation <hhh> <temp>                          - Activates vacation mode for given period in hours and temperature in °C
-                                                  hh: Period in hours
+                                                  hhh: Period in hours
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  timer <day>                                    - Reads timer for given day
  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
-                                                  day:  mon, tue, wed, thu, fri, sat, sun
-                                                  base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
-                                                  target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  day:  mon, tue, wed, thu, fri, sat, sun, today, tomorrow
+                                                  base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
+                                                  target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
                                                   hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40
 
 Configuration:
  comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  window <temp> <hh:mm>                          - Sets temperature in °C and period for open window mode
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
                                                   hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05
  offset <offset>                                - Sets the offset temperature in °C
                                                   offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5
@@ -58,6 +58,7 @@ Others:
  unlock                                         - Unlocks thermostat. No PIN required!
  clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)
  reset                                          - Factory reset
+ name                                           - (unofficial) Set given name for thermostat. This functionality is at your own risk since it abuses the notification handle 0x0421 that can be written!
 ```
 
 ## Examples
