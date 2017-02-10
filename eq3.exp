@@ -463,6 +463,13 @@ proc getModeName {} {
   global thermostat
   
   set name ""
+  if {$thermostat(temperature) == 30} {
+    set name "on"
+    return $name
+  } elseif {$thermostat(temperature) == 4.5} {
+    set name "off"
+    return $name
+  }
   foreach key [lsort [array names MODE]] {
     set cond "[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0]"
     if {[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0] || [hexToDecimal $thermostat(mode)] & $key} {

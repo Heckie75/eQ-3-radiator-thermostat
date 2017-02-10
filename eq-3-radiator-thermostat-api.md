@@ -48,7 +48,7 @@ The thermostat has the following modes which can be active at one and the same t
 - "low battery" - Bit 8 is set (mask 0x80)
 
 ### Valve (Byte 4)
-Byte 4 represents the percentage value of the valve. However, I haven't seen a value more than 80% so far even if boost mode is running.
+Byte 4 represents the percentage value of the valve. However, I haven't seen a value more than 80% in normal operation even if boost mode is running. If thermostat is switched to "on" it is really 100%.
 
 ### Current target temperature (Byte 6)
 Byte 6 represents the target temperature. It has to be calculated.
