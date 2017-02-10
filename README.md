@@ -230,8 +230,8 @@ $ ./eq3.exp 00:1A:22:07:FD:03 vacation 120 19
 Vacation mode:          17-02-14 21:30 19°C
 
 Temperature:            19.0°C
-Valve:              0%
-Mode:               auto vacation 
+Valve:                  0%
+Mode:                   auto vacation 
 Vacation mode:          on
 Vacation until:         2017-02-14 21:30
 ```
