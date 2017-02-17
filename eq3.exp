@@ -92,8 +92,6 @@ set HELP(clear) "\
   clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)"
 set HELP(reset) "\
   reset                                          - Factory reset"
-set HELP(name) "\
-  name                                           - (unofficial) Set given name for thermostat. This functionality is at your own risk since it abuses the notification handle 0x0421 that can be written!"
 
 set mac                         ""
 set cmd                         ""
@@ -159,7 +157,6 @@ set MODE(128)                 "low battery"
 set thermostat(mac)            ""
 set thermostat(name)           ""
 set thermostat(vendor)         ""
-set thermostat(givenName)      ""
 set thermostat(last_request)   ""
 set thermostat(status)         ""
 set thermostat(mode)           ""
@@ -211,7 +208,6 @@ proc help {} {
   puts $HELP(unlock)
   puts $HELP(clear)	
   puts $HELP(reset)
-  puts $HELP(name)  
   puts ""
 }
 
@@ -273,7 +269,6 @@ proc init {level} {
   if { $connected == 0} {
     if {$level & $INIT(device)} {
       readDeviceInfo
-	  readGivenName
     }
     if {$level & $INIT(mode)} {
       readMode
@@ -497,16 +492,6 @@ proc readMode {} {
   parseMode $raw_status
 }
 
-proc readGivenName {} {
-  global HANDLES
-  global thermostat
-	
-  set givenName [hexToASCII [readHandle $HANDLES(notification)]]
-  set givenName [regsub -all {[^\u0020-\u007E]+} $givenName {}]
-  
-  set thermostat(givenName) $givenName
-}
-
 proc parseMode {raw_status} {
   global MODE_BY_NAME
   global thermostat
@@ -562,9 +547,6 @@ proc printDevice {} {
   append out "Device mac:\t\t\t$thermostat(mac)\n"
   append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"	
   append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
-  if {[llength $thermostat(givenName)] > 0} {
-    append out "Given name (0x$HANDLES(notification)):\t\t$thermostat(givenName)\n"
-  }
   append out "\n"
   
   return $out
@@ -798,16 +780,6 @@ proc setTemperature {temp} {
   puts "\n[printStatus]"  
 }
 
-proc setName {name} {
-  global REQUESTS
-  global HANDLES
-  
-  set hexName [string range "[asciiToHex $name]$REQUESTS(clear)" 0 32]
-  
-  writeHandle $HANDLES(notification) $hexName
-  puts "\nName has been set."
-}
-
 proc clear {} {
   global REQUESTS
   
@@ -946,11 +918,6 @@ proc doCommand {} {
       init 0
       reset
     }
-    ^name.*$ {
-	  checkArgs $c 1 "name" {^name [\u0020-\u007E]{1,16}$}
-      init 0
-      setName [lindex $c 1]
-    }	
     ^.*$ {
       help
     }
