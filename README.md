@@ -58,7 +58,6 @@ Others:
  unlock                                         - Unlocks thermostat. No PIN required!
  clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)
  reset                                          - Factory reset
- name                                           - (unofficial) Set given name for thermostat. This functionality is at your own risk since it abuses the notification handle 0x0421 that can be written!
 ```
 
 ## Examples
