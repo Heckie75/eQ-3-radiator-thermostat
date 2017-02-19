@@ -66,8 +66,8 @@ set HELP(vacation) "\
 \                                                 yy-mm-dd: until date, e.g. 17-03-31\n\
 \                                                 hh:mm: until time where minutes must be 00 or 30, e.g. 23:30\n\
 \                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
-\ vacation <hhh> <temp>                          - Activates vacation mode for given period in hours and temperature in °C\n\
-\                                                 hhh: Period in hours\n\
+\ vacation <mmm> <temp>                          - Activates vacation mode for given period in minutes and temperature in °C\n\
+\                                                 hhh: Period in minutes\n\
 \                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5" 
 set HELP(on) "\
   on                                             - Sets thermostat to permanent on (30°C)"

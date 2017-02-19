@@ -288,7 +288,7 @@ Unfortunately it does not seem to be possible to read the ETA before boost mode 
 Request
 ```
 char-write-req 0411 45ff
-               |    | +---------- Byte 2: Any value greater or equal than 0 starts boost mode. Values don't seem to make a difference.
+               |    | +---------- Byte 2: Any value greater or equal than 1 starts boost mode. Values don't seem to make a difference.
                |    +------------ Byte 1: "45" indicates request in order to start boost mode
                + request via handle 411
 ```

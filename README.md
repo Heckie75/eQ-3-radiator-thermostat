@@ -34,8 +34,8 @@ Timers:
                                                   yy-mm-dd: until date, e.g. 17-03-31
                                                   hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
- vacation <hhh> <temp>                          - Activates vacation mode for given period in hours and temperature in °C
-                                                  hhh: Period in hours
+ vacation <mmm> <temp>                          - Activates vacation mode for given period in minutes and temperature in °C
+                                                  mmm: Period in minutes
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  timer <day>                                    - Reads timer for given day
  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
