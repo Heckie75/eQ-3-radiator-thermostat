@@ -31,12 +31,12 @@
 package require Tclx
 
 # sets output to stdout and debug
-log_user 0
+log_user 1
 
 set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3\n"
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
 set HELP(status) "\
-  status                                         - Prints target temperature, mode and schedules\n\
+  status                                         - Syncs time, Prints target temperature, mode and schedules\n\
 \                                                 (in debug mode also last command even of official app, set log_user to 1 in code!)"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
@@ -109,7 +109,6 @@ set HANDLES(vendor)            "0311"
 set HANDLES(request)           "0411"
 set HANDLES(notification)      "0421"
 
-set REQUESTS(getStatus)        "03"
 set REQUESTS(setTime)          "03"
 
 set REQUESTS(setTimer)         "10"
@@ -271,7 +270,7 @@ proc init {level} {
       readDeviceInfo
     }
     if {$level & $INIT(mode)} {
-      readMode
+      syncTime
     }
     if {$level & $INIT(timer)} {
       readTimers
@@ -484,14 +483,6 @@ proc readDeviceInfo {} {
   set thermostat(last_request) [readHandle $HANDLES(request)]
 }
 
-proc readMode {} {
-  global REQUESTS
-	
-  set raw_status [writeRequest $REQUESTS(getStatus) ""]
-  
-  parseMode $raw_status
-}
-
 proc parseMode {raw_status} {
   global MODE_BY_NAME
   global thermostat
@@ -511,7 +502,7 @@ proc parseMode {raw_status} {
 }
 
 proc readTimer {day} {
-  global REQUESTS	
+  global REQUESTS
   global thermostat
 
   set raw_timer [writeRequest $REQUESTS(getTimer) [decimalToHex $day]]
@@ -559,7 +550,7 @@ proc printStatus {} {
   global thermostat
   
   if {[log_user] != 0} {
-    append out "Status (0x$HANDLES(request) $REQUESTS(getStatus)):\t\t$thermostat(status)\n"
+    append out "Status (0x$HANDLES(request) $REQUESTS(setTime)):\t\t$thermostat(status)\n"
   }	
   
   append out "Temperature:\t\t\t$thermostat(temperature)°C\n"
@@ -631,9 +622,7 @@ proc syncTime {} {
   set currentDate [currentDate]
   set raw_status [writeRequest $REQUESTS(setTime) "[dateToHex $currentDate][timeToHex $currentTime]"]
 
-  puts "\nSync time:\t\t\t$currentDate $currentTime"
   parseMode $raw_status
-  puts "\n[printStatus]"
 }
 
 proc setVacationMode {date daytime temp} {

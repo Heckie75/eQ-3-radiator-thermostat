@@ -16,17 +16,22 @@
 - Characteristic value/descriptor: 65 71 2d 33 
 - Set: n/a
 
-## Read current status and mode
+
+## Read current status and mode, sync time
+
 It is possible to request some status information of the thermostat, i.e.
 - current mode
 - target temperature
 - current level of valve
 - and details of vacation mode
 
-Request:
+Requesting the current status and mode requires to set the current date and time explicitly.
+
+Therefore the request is as follows:
 ```
-char-write-req 0411 03
-               |    + request status command
+char-write-req 0411 03110208151f05
+               |    | + Byte 2 to 7: yy-mm-day hh-MM-ss in hex
+               |    +-- Byte 1: request command "03"
                + request via handle 411
 ```
 
@@ -34,6 +39,19 @@ Data will be returned via notification handle
 ```
 Notification handle = 0x0421 value: 02 01 00 00 04 2a
 ```
+
+*Note:*
+Earlier I have written that it is good enough just to send the request w/o date and time like this:
+```
+char-write-req 0411 03
+```
+
+But these days I got the feedback that this way corrupts the internal clock so that timers and vacation 
+mode do not work anymore as long as the clock has been set explicitly again. 
+I have also dumped the bluetooth communication of the official app on Android devices. 
+The app also sends date and time each time it requests the status. So we should do it as well.
+
+Note: It does not seem to be possible to set the "daylight summertime" (dst) via bluetooth. 
 
 ### Modes (Byte 3)
 The thermostat has the following modes which can be active at one and the same time:
@@ -112,23 +130,6 @@ Notification handle = 0x0421 value: 02 01 02 00 04 26 1c 11 03 02
                       |             |  +------------------------ Byte 2: Always "01"
                       |             +--------------------------- Byte 1: Always "02"
                       + response via notification handle on 0x421
-```
-
-## Set date and time
-Since the thermostat has timers it has an internal clock and calender of course. Unfortunately it is not possible to read data from it. But it can be set. 
-Note: It does not seem to be possible to set the "daylight summertime" (dst) via bluetooth. 
-
-Request:
-```
-char-write-req 0411 03110208151f05
-               |    | + Byte 2 to 7: yy-mm-day hh-MM-ss in hex
-               |    +-- Byte 1: request command "03"
-               + request via handle 411
-```
-
-The thermostat returns status via notification handle simular to what we have seen before:
-```
-notification: 0x0421 02 01 00 00 04 2a 
 ```
 
 ## Set mode
