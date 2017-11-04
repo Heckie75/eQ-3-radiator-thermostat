@@ -4,7 +4,7 @@
 #
 # Note: requires package Tclx
 #
-# Version: 2017-02-05
+# Version: 2017-11-04
 #
 # MIT License
 #
@@ -80,7 +80,7 @@ set HELP(boost_off) "\
 set HELP(timer) "\
   timer <day>                                    - Reads timer for given day\n\
   timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time\n\
-\                                                 day:  mon, tue, wed, thu, fri, sat, sun, today, tomorrow\n\
+\                                                 day:  mon, tue, wed, thu, fri, sat, sun, work, weekend, everyday, today, tomorrow\n\
 \                                                 base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
 \                                                 target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
 \                                                 hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40"
@@ -263,7 +263,7 @@ proc disconnect {} {
 proc init {level} {
   global INIT
 	
-  set connected [connect] 	
+  set connected [connect]
 	
   if { $connected == 0} {
     if {$level & $INIT(device)} {
@@ -440,9 +440,15 @@ proc getDayOrdinal {weekday} {
     return [expr ($todayOrdinal + 1) % 7]
   } elseif {$weekday == "tomorrow"} {
     return [expr ($todayOrdinal + 2) % 7]
+  } elseif {$weekday == "weekend"} {
+    return 7
+  } elseif {$weekday == "work"} {
+    return 8
+  } elseif {$weekday == "everyday"} {
+    return 9
   }
   
-  for {set day 0} {$day < [llength $DAYS]} {incr day} {
+  for {set day 0} {$day < 7} {incr day} {
    if {[string tolower [lindex $DAYS $day]] == $weekday} {
       break
     }
@@ -525,8 +531,7 @@ proc readTimer {day} {
 proc readTimers {} {
   global DAYS
 
-  set days [llength $DAYS]
-  for {set day 0} {$day < $days} {incr day} {
+  for {set day 0} {$day < 7} {incr day} {
     readTimer $day
   }
 }
@@ -599,8 +604,7 @@ proc printTimers {} {
   set todayOrdinal [clock format [clock seconds] -format %u]
   
   set out ""
-  set days [llength $DAYS]
-  for {set day 0} {$day < $days} {incr day} {
+  for {set day 0} {$day < 7} {incr day} {
     append out [printTimer [expr ($day + $todayOrdinal + 1) % 7]]
   }	
   
