@@ -860,11 +860,11 @@ proc doCommand {} {
       if {[llength $c] > 16} {	
         checkArgs $c 1 "timer" {^$}
       } elseif {[llength $c] == 2} {
-        checkArgs $c 1 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun|today|tomorrow)$}
+        checkArgs $c 1 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun|work|weekend|everyday|today|tomorrow)$}
         init 0	      
         getTimer $params
       } else {
-        checkArgs $c 3 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun|today|tomorrow) [0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0].*$}
+        checkArgs $c 3 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun|work|weekend|everyday|today|tomorrow) [0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0].*$}
         init 0
         for {set i 2} {$i < [llength $c]} {set i [expr $i + 2]} {
           set t "[lindex $c $i] [lindex $c [expr $i + 1]]"
