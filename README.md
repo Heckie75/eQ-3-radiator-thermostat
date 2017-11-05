@@ -12,7 +12,7 @@ Full-featured CLI for radiator thermostat eQ-3 CC-RT-BLE
 
 Usage: <mac> <command> <parameters...>
 
-Status / sync:
+Sync:
  sync                                           - Syncs time and prints target temperature and mode
 
 Mode:
@@ -53,12 +53,12 @@ Configuration:
                                                   hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05
  offset <offset>                                - Sets the offset temperature in °C
                                                   offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5
- status                                         - Syncs time, Prints target temperature, mode and timers
-                                                  (in debug mode also last command even of official app, set log_user to 1 in code!)
 
 Others:
  lock                                           - Locks thermostat (LOC). No PIN required!
  unlock                                         - Unlocks thermostat. No PIN required!
+ status                                         - Syncs time, Prints target temperature, mode and timers
+                                                  (in debug mode also last command even of official app, set log_user to 1 in code!)
  clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)
  reset                                          - Factory reset
 ```

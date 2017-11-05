@@ -177,7 +177,7 @@ proc help {} {
   global HELP
   puts $HELP(about)
   puts $HELP(usage)
-  puts "Status / sync:"
+  puts "Sync:"
   puts $HELP(sync)
  
   puts "\nMode:"
@@ -201,11 +201,11 @@ proc help {} {
   puts $HELP(comforteco)
   puts $HELP(window)
   puts $HELP(offset)	
-  puts $HELP(status)
 
   puts "\nOthers:"
   puts $HELP(lock)
   puts $HELP(unlock)
+  puts $HELP(status)
   puts $HELP(clear)	
   puts $HELP(reset)
   puts ""
