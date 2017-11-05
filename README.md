@@ -30,13 +30,6 @@ Temperature:
  off                                            - Sets thermostat to permanent off (4.5°C)
 
 Timers:
- vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C
-                                                  yy-mm-dd: until date, e.g. 17-03-31
-                                                  hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
- vacation <mmm> <temp>                          - Activates vacation mode for given period in minutes and temperature in °C
-                                                  hhh: Period in minutes
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  timers                                         - Reads all timers
  timer <day>                                    - Reads timer for given day
  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
@@ -44,6 +37,13 @@ Timers:
                                                   base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
                                                   target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
                                                   hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40
+ vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C
+                                                  yy-mm-dd: until date, e.g. 17-03-31
+                                                  hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+ vacation <hh> <temp>                           - Activates vacation mode for given period in hours and temperature in °C
+                                                  hh: Period in hours
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
 
 Configuration:
  comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C
