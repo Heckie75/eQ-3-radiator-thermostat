@@ -33,10 +33,10 @@ package require Tclx
 # sets output to stdout and debug
 log_user 0
 
-set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3\n"
+set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3 CC-RT-BLE\n"
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
 set HELP(status) "\
-  status                                         - Syncs time, Prints target temperature, mode and schedules\n\
+  status                                         - Syncs time, Prints target temperature, mode and timers\n\
 \                                                 (in debug mode also last command even of official app, set log_user to 1 in code!)"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
@@ -78,6 +78,7 @@ set HELP(boost) "\
 set HELP(boost_off) "\
   boost off                                      - Deactivates boost mode"
 set HELP(timer) "\
+  timers                                         - Reads all timers\n\
   timer <day>                                    - Reads timer for given day\n\
   timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time\n\
 \                                                 day:  mon, tue, wed, thu, fri, sat, sun, work, weekend, everyday, today, tomorrow\n\
@@ -178,7 +179,6 @@ proc help {} {
   puts $HELP(usage)
   puts "Status / sync:"
   puts $HELP(sync)
-  puts $HELP(status)
  
   puts "\nMode:"
   puts $HELP(auto)
@@ -201,6 +201,7 @@ proc help {} {
   puts $HELP(comforteco)
   puts $HELP(window)
   puts $HELP(offset)	
+  puts $HELP(status)
 
   puts "\nOthers:"
   puts $HELP(lock)
@@ -541,8 +542,15 @@ proc printDevice {} {
   global thermostat
 
   append out "Device mac:\t\t\t$thermostat(mac)\n"
-  append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"	
-  append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
+  
+  if {[log_user] == 0} {
+    append out "Device name:\t\t\t$thermostat(name)\n"
+    append out "Device vendor:\t\t\t$thermostat(vendor)\n"
+  } else {
+    append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"
+    append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
+  }
+  
   append out "\n"
   
   return $out
@@ -612,10 +620,9 @@ proc printTimers {} {
 }
 
 proc dumpThermostat {} {
-  set out "\n"
-  append out [printDevice]
-  append out [printStatus]
   append out [printTimers]
+  append out "\n"
+  append out [printDevice]
   puts $out
 }
 
@@ -627,6 +634,7 @@ proc syncTime {} {
   set raw_status [writeRequest $REQUESTS(setTime) "[dateToHex $currentDate][timeToHex $currentTime]"]
 
   parseMode $raw_status
+  puts "\n[printStatus]"
 }
 
 proc setVacationMode {date daytime temp} {
@@ -805,13 +813,8 @@ proc doCommand {} {
   set cmd ""
 	
   switch -regexp $c {
-    ^status$ {
-      init [expr $INIT(device) + $INIT(mode) + $INIT(timer)]
-      dumpThermostat
-    }
     ^sync$ {
-      init 0
-      syncTime
+      init $INIT(mode)
     }
     ^comforteco.* {
       checkArgs $c 2 "comforteco" {^comforteco [0-9]{1,2}\.?[05]? [0-9]{1,2}\.?[05]?$}	    
@@ -855,6 +858,10 @@ proc doCommand {} {
         setAwayMode [lindex $c 1] [lindex $c 2]
       }
     }
+    ^timers$ {	    
+      init $INIT(timer)
+      puts [printTimers]
+    }	  
     ^timer.* {
       set params [lindex $c 1]
       if {[llength $c] > 16} {	
@@ -894,6 +901,10 @@ proc doCommand {} {
       checkArgs $c 1 "temperature" {^temp [0-9]{1,2}\.?[05]?$}	    
       init 0
       setTemperature [lindex $c 1]
+    }
+    ^status$ {
+      init [expr $INIT(device) + $INIT(mode) + $INIT(timer)]
+      dumpThermostat
     }
     ^lock$ {
       init 0
