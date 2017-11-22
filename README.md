@@ -1,6 +1,6 @@
 # eQ-3-radiator-thermostat
 
-Full-featured shell script interface based on expect and gatttool for eQ-3 radiator thermostat
+Full-featured shell script interface based on expect and gatttool for eqiva eQ-3 radiator thermostat
 
 This script allows to control the bluetooth radiator thermostat with the Raspberry Pi's Raspian and other Linux distributions.
 
