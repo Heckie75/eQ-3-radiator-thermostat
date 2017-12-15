@@ -161,7 +161,7 @@ set thermostat(temperature)    ""
 set thermostat(vacation_date)  ""
 set thermostat(vacation_time)  ""
 
-set DAYS                    "Sat Sun Mon Tue Wed Thu Fri"
+set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Weekend Work Everyday"
 
 proc log {l} {
   if {[log_user] != 0} {
