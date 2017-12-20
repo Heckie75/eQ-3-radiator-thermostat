@@ -59,6 +59,7 @@ Others:
  unlock                                         - Unlocks thermostat. No PIN required!
  status                                         - Syncs time, Prints target temperature, mode and timers
                                                   (in debug mode also last command even of official app, set log_user to 1 in code!)
+ json                                           - Simular to status but in json format
  clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)
  reset                                          - Factory reset
 ```

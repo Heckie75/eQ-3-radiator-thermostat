@@ -1,5 +1,5 @@
 #!/usr/bin/expect
-# 
+#
 # Shell script in order to control eQ-3 radiator thermostat
 #
 # Version: 2017-11-04
@@ -31,9 +31,6 @@ log_user 0
 
 set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3 CC-RT-BLE\n"
 set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
-set HELP(status) "\
-  status                                         - Syncs time, Prints target temperature, mode and timers\n\
-\                                                 (in debug mode also last command even of official app, set log_user to 1 in code!)"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
 set HELP(window) "\
@@ -49,7 +46,7 @@ set HELP(comforteco) "\
 \                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5"
 set HELP(offset) "\
   offset <offset>                                - Sets the offset temperature in °C\n\
-\                                                 offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5"  
+\                                                 offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5"
 set HELP(comfort) "\
   comfort                                        - Sets target temperature to programmed comfort temperature"
 set HELP(eco) "\
@@ -61,10 +58,10 @@ set HELP(vacation) "\
   vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C\n\
 \                                                 yy-mm-dd: until date, e.g. 17-03-31\n\
 \                                                 hh:mm: until time where minutes must be 00 or 30, e.g. 23:30\n\
-\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
 \ vacation <hh> <temp>                           - Activates vacation mode for given period in hours and temperature in °C\n\
 \                                                 hh: Period in hours\n\
-\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5" 
+\                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5"
 set HELP(on) "\
   on                                             - Sets thermostat to permanent on (30°C)"
 set HELP(off) "\
@@ -87,6 +84,11 @@ set HELP(unlock) "\
   unlock                                         - Unlocks thermostat. No PIN required!"
 set HELP(clear) "\
   clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)"
+set HELP(status) "\
+status                                         - Syncs time, Prints target temperature, mode and timers\n\
+\                                                 (in debug mode also last command even of official app, set log_user to 1 in code!)"
+set HELP(json) "\
+json                                           - Same as status but in json format"
 set HELP(reset) "\
   reset                                          - Factory reset"
 
@@ -175,7 +177,7 @@ proc help {} {
   puts $HELP(usage)
   puts "Sync:"
   puts $HELP(sync)
- 
+
   puts "\nMode:"
   puts $HELP(auto)
   puts $HELP(manual)
@@ -186,23 +188,24 @@ proc help {} {
   puts $HELP(boost)
   puts $HELP(boost_off)
   puts $HELP(temperature)
-  puts $HELP(on)  
+  puts $HELP(on)
   puts $HELP(off)
-	
+
   puts "\nTimers:"
   puts $HELP(timer)
-  puts $HELP(vacation)	
-	
+  puts $HELP(vacation)
+
   puts "\nConfiguration:"
   puts $HELP(comforteco)
   puts $HELP(window)
-  puts $HELP(offset)	
+  puts $HELP(offset)
 
   puts "\nOthers:"
   puts $HELP(lock)
   puts $HELP(unlock)
   puts $HELP(status)
-  puts $HELP(clear)	
+  puts $HELP(json)
+  puts $HELP(clear)
   puts $HELP(reset)
   puts ""
 }
@@ -210,14 +213,14 @@ proc help {} {
 proc parseArgv {argv} {
   global mac
   global cmd
-	
+
   if {[llength $argv] < 2} {
     help
     exit
   }
 
   set mac [lindex $argv 0]
-	
+
   set cmd ""
   for {set i 1} {$i < [llength $argv]} {incr i} {
     if {$i > 1} {
@@ -233,15 +236,15 @@ proc checkArgs {argv req command reg} {
   if {[llength $argv] <= $req || $check == 0} {
     puts $HELP(usage)
     puts $HELP($command)
-    puts ""	
+    puts ""
     exit 1
   }
 }
 
 proc connect {} {
-  global thermostat	
+  global thermostat
   global mac
-	
+
   expect "\[LE\]"
   send "connect $mac\r"
   expect "Connection successful" {
@@ -259,9 +262,9 @@ proc disconnect {} {
 
 proc init {level} {
   global INIT
-	
+
   set connected [connect]
-	
+
   if { $connected == 0} {
     if {$level & $INIT(device)} {
       readDeviceInfo
@@ -302,21 +305,21 @@ proc writeRequest {command value} {
   global REQUESTS
   global DELAY
   global thermostat
-  
+
   log "writeRequest: char-write-req $HANDLES(request) $command $value"
   set thermostat(last_request) "$command $value"
 
   send "char-write-req $HANDLES(request) $command$value\r"
   expect "Characteristic value was written successfully" {
     log "ok"
-  }	
+  }
   expect "Notification handle = 0x$HANDLES(notification) value: " {
     log "ok"
   }
   expect -re "\[0-9a-f\ ]*" {
     log "ok"
   }
-  
+
   after $DELAY
   set notification $expect_out(buffer)
   log "notification: 0x$HANDLES(notification) $notification"
@@ -325,16 +328,16 @@ proc writeRequest {command value} {
 
 proc writeHandle {handle value} {
   global DELAY
-  
+
   log "writeHandle: char-write-req $handle $value"
   send "char-write-req $handle $value\r"
   expect "Characteristic value was written successfully" {
     log "ok"
-  }	
+  }
   expect -re "\[0-9a-f\ ]*" {
     log "ok"
   }
-  
+
   after $DELAY
 }
 
@@ -369,7 +372,7 @@ proc hexToTemperature {hex} {
 }
 
 proc hexToDate {xyy xmm xdd} {
-  return "[format "%02d" [expr 2000 + [hexToDecimal $xyy]]]-[format "%02d" [hexToDecimal $xmm]]-[format "%02d" [hexToDecimal $xdd]]"  
+  return "[format "%02d" [expr 2000 + [hexToDecimal $xyy]]]-[format "%02d" [hexToDecimal $xmm]]-[format "%02d" [hexToDecimal $xdd]]"
 }
 
 proc currentTime {} {
@@ -382,15 +385,15 @@ proc currentDate {} {
 
 proc timeToHex {time} {
   set part [split $time ":"]
-  scan [lindex $part 0] %d hours  
+  scan [lindex $part 0] %d hours
   scan [lindex $part 1] %d minutes
-  
+
   set hex "[decimalToHex $hours][decimalToHex $minutes]"
-  
+
   if {[llength $part] == 3} {
     scan [lindex $part 2] %d seconds
     append hex [decimalToHex $seconds]
-  } 
+  }
 
   return $hex
 }
@@ -419,19 +422,19 @@ proc minutesToTime {value multiplicator} {
   return $time
 }
 
-proc timeToMinutes {daytime devider} { 
+proc timeToMinutes {daytime devider} {
   set part [split $daytime ":"]
   scan [lindex $part 0] %d hours
-  scan [lindex $part 1] %d minutes	
-	      
+  scan [lindex $part 1] %d minutes
+
   set enctime [expr ($hours * 60 + $minutes) / $devider]
-  
+
   return $enctime
 }
 
 proc getDayOrdinal {weekday} {
   global DAYS
-  
+
   set todayOrdinal [clock format [clock seconds] -format %u]
   if {$weekday == "today"} {
     return [expr ($todayOrdinal + 1) % 7]
@@ -444,13 +447,13 @@ proc getDayOrdinal {weekday} {
   } elseif {$weekday == "everyday"} {
     return 9
   }
-  
+
   for {set day 0} {$day < 7} {incr day} {
    if {[string tolower [lindex $DAYS $day]] == $weekday} {
       break
     }
   }
-  
+
   return $day
 }
 
@@ -458,7 +461,7 @@ proc getModeName {} {
   global MODE
   global MODE_BY_NAME
   global thermostat
-  
+
   set name ""
   if {$thermostat(temperature) == 30} {
     set name "on"
@@ -468,16 +471,36 @@ proc getModeName {} {
     return $name
   }
   foreach key [lsort [array names MODE]] {
-    set cond "[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0]"
     if {[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0] || [hexToDecimal $thermostat(mode)] & $key} {
       append name $MODE($key)
       append name " "
     }
   }
-  return $name
+  return [string trim $name]
 }
 
-proc readDeviceInfo {} {	
+proc getModeAsJson {} {
+  global MODE
+  global MODE_BY_NAME
+  global thermostat
+
+  set json "\{\n"
+  foreach key [lsort [array names MODE]] {
+
+    if {[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0] || [hexToDecimal $thermostat(mode)] & $key} {
+      set v "true"
+    } else {
+      set v "false"
+    }
+    append json "    \"" $MODE($key) "\" : " $v ",\n"
+  }
+  append json "    \"on\" : " [expr $thermostat(temperature) == 30 ? "true" : "false" ] ",\n"
+  append json "    \"off\" : " [expr $thermostat(temperature) == 4.5 ? "true" : "false" ] "\n"
+  append json "  \}"
+  return $json
+}
+
+proc readDeviceInfo {} {
   global HANDLES
   global thermostat
 
@@ -510,7 +533,7 @@ proc readTimer {day} {
 
   set raw_timer [writeRequest $REQUESTS(getTimer) [decimalToHex $day]]
   set thermostat("timer_raw_$day") $raw_timer
-	
+
   set event 1
   set start "00:00"
   while {$event <= 7 && $start != "24:00"} {
@@ -519,7 +542,7 @@ proc readTimer {day} {
     set end [minutesToTime [hexToDecimal [lindex $raw_timer [expr 2 * $event + 1 ]]] 10]
     set thermostat("timer_end_$key") $end
     set thermostat("timer_temperature_$key") [hexToTemperature [lindex $raw_timer [expr 2 * $event]]]
-	  
+
     incr event
     set start $end
   }
@@ -528,7 +551,7 @@ proc readTimer {day} {
 proc readTimers {} {
   global DAYS
 
-  for {set day 0} {$day < 7} {incr day} {
+  for {set day 0} {$day < 9} {incr day} {
     readTimer $day
   }
 }
@@ -538,7 +561,7 @@ proc printDevice {} {
   global thermostat
 
   append out "Device mac:\t\t\t$thermostat(mac)\n"
-  
+
   if {[log_user] == 0} {
     append out "Device name:\t\t\t$thermostat(name)\n"
     append out "Device vendor:\t\t\t$thermostat(vendor)\n"
@@ -546,36 +569,95 @@ proc printDevice {} {
     append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"
     append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
   }
-  
+
   append out "\n"
-  
+
   return $out
 }
+
+proc toJson {} {
+  global REQUESTS
+  global DAYS
+  global MODE_BY_NAME
+  global thermostat
+
+  set connected [connect]
+
+
+  if { $connected != 0} {
+    puts "\{ \"error\" : \"Connection failed.\" \}"
+    exit -1
+  }
+
+  readTimers
+
+  set currentTime [currentTime]
+  set currentDate [currentDate]
+  set raw_status [writeRequest $REQUESTS(setTime) "[dateToHex $currentDate][timeToHex $currentTime]"]
+  parseMode $raw_status
+
+  append out "\{\n"
+  append out "  \"mac\" : \"$thermostat(mac)\",\n"
+  append out "  \"temperature\" : $thermostat(temperature),\n"
+  append out "  \"valve\" : $thermostat(valve),\n"
+  append out "  \"mode\" : [getModeAsJson],\n"
+  if {[hexToDecimal $thermostat(mode)] & $MODE_BY_NAME(vacation)} {
+    append out "  \"vacation\" : \"$thermostat(vacation_date) $thermostat(vacation_time)\",\n"
+  } else {
+    append out "  \"vacation\" : null,\n"
+  }
+  append out "  \"timers\" : \{\n"
+  for {set day 0} {$day < 9} {incr day} {
+    append out "    \"[lindex $DAYS $day]\" : \[\n"
+    for {set event 1} {$event <= 7} {incr event} {
+      set key "[lindex $day 0]_[lindex $event 0]"
+      append out "      \{\n"
+      append out "        \"from\" : \"$thermostat("timer_start_$key")\",\n"
+      append out "        \"to\" : \"$thermostat("timer_end_$key")\",\n"
+      append out "        \"temperature\" : $thermostat("timer_temperature_$key")\n"
+      append out "      \}"
+      if {"24:00" == "$thermostat("timer_end_$key")"} {
+        break
+      }
+      append out ",\n"
+    }
+    append out "\n    ]"
+    if {$day < 8} {
+      append out ","
+    }
+    append out "\n"
+  }
+  append out "  \}\n"
+  append out "\}"
+
+  puts $out
+}
+
 
 proc printStatus {} {
   global HANDLES
   global REQUESTS
   global MODE_BY_NAME
   global thermostat
-  
+
   if {[log_user] != 0} {
     append out "Status (0x$HANDLES(request) $REQUESTS(setTime)):\t\t$thermostat(status)\n"
-  }	
-  
+  }
+
   append out "Temperature:\t\t\t$thermostat(temperature)°C\n"
   append out "Valve:\t\t\t\t$thermostat(valve)%\n"
   append out "Mode:\t\t\t\t[getModeName]\n"
 
   if {[hexToDecimal $thermostat(mode)] & $MODE_BY_NAME(vacation)} {
-    append out "Vacation mode:\t\t\ton\n"	  
+    append out "Vacation mode:\t\t\ton\n"
     append out "Vacation until:\t\t\t$thermostat(vacation_date) $thermostat(vacation_time)\n"
   } else {
     append out "Vacation mode:\t\t\toff\n"
   }
   if {[log_user] != 0} {
     append out "\nLast request (0x$HANDLES(request)):\t\t$thermostat(last_request)\n"
-  }	
-  
+  }
+
   return $out
 }
 
@@ -584,13 +666,13 @@ proc printTimer {day} {
   global HANDLES
   global REQUESTS
   global thermostat
-  
+
   append out "\n"
   append out "Timer for [lindex $DAYS $day]"
-  if {[log_user] != 0} {  
+  if {[log_user] != 0} {
     append out " (0x$HANDLES(request) $REQUESTS(getTimer)[decimalToHex $day]):\t$thermostat("timer_raw_$day")\n"
   } else {
-    append out ":\n" 
+    append out ":\n"
   }
   for {set event 1} {$event <= 7} {incr event} {
     set key "[lindex $day 0]_[lindex $event 0]"
@@ -606,12 +688,12 @@ proc printTimers {} {
   global DAYS
 
   set todayOrdinal [clock format [clock seconds] -format %u]
-  
+
   set out ""
   for {set day 0} {$day < 7} {incr day} {
     append out [printTimer [expr ($day + $todayOrdinal + 1) % 7]]
-  }	
-  
+  }
+
   return $out
 }
 
@@ -636,18 +718,18 @@ proc syncTime {} {
 proc setVacationMode {date daytime temp} {
   global REQUESTS
   set part [split $date "-"]
-  scan [lindex $part 0] %d year  
+  scan [lindex $part 0] %d year
   scan [lindex $part 1] %d month
   scan [lindex $part 2] %d day
 
   set enctime [timeToMinutes $daytime 30]
   set enctemp [expr ($temp * 2 + 128)]
-	
+
   set raw_status [writeRequest $REQUESTS(setVacationMode) "[decimalToHex $enctemp][decimalToHex $day][decimalToHex $year][decimalToHex $enctime][decimalToHex $month]"]
 
   puts "\nVacation mode:\t\t\t$date $daytime $temp°C"
   parseMode $raw_status
-  puts "\n[printStatus]"    
+  puts "\n[printStatus]"
 }
 
 proc setAwayMode {hours temp} {
@@ -659,10 +741,10 @@ proc setAwayMode {hours temp} {
 }
 
 proc getTimer {weekday} {
-  global DAYS	
-  
+  global DAYS
+
   set day [getDayOrdinal $weekday]
-  
+
   readTimer $day
   puts [printTimer $day]
 }
@@ -671,11 +753,11 @@ proc setTimer {params} {
   global REQUESTS
   global DAYS
   global thermostat
-	
+
   set day [getDayOrdinal [lindex $params 0]]
-  
+
   set enctimer [decimalToHex $day]
-	
+
   set timer 1
   set schedule ""
   while {$timer < [llength $params] && $timer < 14} {
@@ -697,12 +779,12 @@ proc setTimer {params} {
 
 proc setComfortEco {comfort eco} {
   global REQUESTS
-	
+
   set raw_status [writeRequest $REQUESTS(setComfortEco) "[tempToHex $comfort][tempToHex $eco]"]
-  
+
   puts "\nComfort temperature:\t\t$comfort°C"
   puts "Eco temperature:\t\t$eco°C"
-  
+
   parseMode $raw_status
   puts "\n[printStatus]"
 }
@@ -711,16 +793,16 @@ proc setWindowMode {temp time} {
   global REQUESTS
 
   set part [split $time ":"]
-  scan [lindex $part 0] %d hours  
+  scan [lindex $part 0] %d hours
   scan [lindex $part 1] %d minutes
-	
+
   set period [expr ($minutes + $hours * 60) / 5]
-	
+
   set raw_status [writeRequest $REQUESTS(setWindowOpen) "[tempToHex $temp][decimalToHex $period]"]
-  
+
   puts "\nWindow open temperature:\t$temp°C"
   puts "Window open time:\t\t$time"
-  
+
   parseMode $raw_status
   puts "\n[printStatus]"
 }
@@ -729,16 +811,16 @@ proc setOffset {temp} {
   global REQUESTS
 
   set raw_status [writeRequest $REQUESTS(setOffset) "[decimalToHex [expr ($temp + 3.5) / 0.5]]"]
-  
+
   puts "\nOffset temperature:\t\t$temp°C"
-  
+
   parseMode $raw_status
   puts "\n[printStatus]"
 }
 
 proc setMode {mode} {
   global REQUESTS
-	
+
   switch $mode {
     "auto" {
       set raw_status [writeRequest $REQUESTS(setAutoMode) ""]
@@ -747,22 +829,22 @@ proc setMode {mode} {
       set raw_status [writeRequest $REQUESTS(setManualMode) ""]
     }
     "startBoost" {
-      set raw_status [writeRequest $REQUESTS(startBoost) ""]	    
+      set raw_status [writeRequest $REQUESTS(startBoost) ""]
     }
     "stopBoost" {
-      set raw_status [writeRequest $REQUESTS(stopBoost) ""]	    
+      set raw_status [writeRequest $REQUESTS(stopBoost) ""]
     }
   }
   parseMode $raw_status
-  puts "\n[printStatus]"  
+  puts "\n[printStatus]"
 }
 
 proc setTemperature {temp} {
   global REQUESTS
-  
-  set raw_status "" 
+
+  set raw_status ""
   if {"comfort" == $temp} {
-    set raw_status [writeRequest $REQUESTS(setComfortTemperature) ""]	  
+    set raw_status [writeRequest $REQUESTS(setComfortTemperature) ""]
   } elseif {"eco" == $temp} {
     set raw_status [writeRequest $REQUESTS(setEcoTemperature) ""]
   } elseif {"on" == $temp} {
@@ -770,33 +852,33 @@ proc setTemperature {temp} {
   } elseif {"off" == $temp} {
     set raw_status [writeRequest $REQUESTS(setOff) ""]
   } else {
-    set raw_status [writeRequest $REQUESTS(setTemperature) "[tempToHex $temp]"]	  
+    set raw_status [writeRequest $REQUESTS(setTemperature) "[tempToHex $temp]"]
   }
-  
+
   parseMode $raw_status
-  puts "\n[printStatus]"  
+  puts "\n[printStatus]"
 }
 
 proc clear {} {
   global REQUESTS
-  
+
   writeRequest $REQUESTS(clear) ""
   puts "\nBuffer for last request cleared!"
 }
 
 proc reset {} {
   global REQUESTS
-  
+
   writeRequest $REQUESTS(reset) ""
-  puts "\nFactory reset done!"  
+  puts "\nFactory reset done!"
 }
 
 proc otherRequest {command} {
   global REQUESTS
-  
+
   set raw_status [writeRequest $REQUESTS($command) ""]
   parseMode $raw_status
-  puts "\n[printStatus]"  
+  puts "\n[printStatus]"
 }
 
 proc doCommand {} {
@@ -807,27 +889,27 @@ proc doCommand {} {
 
   set c $cmd
   set cmd ""
-	
+
   switch -regexp $c {
     ^sync$ {
       init $INIT(mode)
     }
     ^comforteco.* {
-      checkArgs $c 2 "comforteco" {^comforteco [0-9]{1,2}\.?[05]? [0-9]{1,2}\.?[05]?$}	    
+      checkArgs $c 2 "comforteco" {^comforteco [0-9]{1,2}\.?[05]? [0-9]{1,2}\.?[05]?$}
       init 0
       setComfortEco [lindex $c 1] [lindex $c 2]
     }
     ^window.* {
-      checkArgs $c 2 "window" {^window [0-9]{1,2}\.?[05]? [0-9]{1,2}:[0-9][05]$}	    
+      checkArgs $c 2 "window" {^window [0-9]{1,2}\.?[05]? [0-9]{1,2}:[0-9][05]$}
       init 0
       setWindowMode [lindex $c 1] [lindex $c 2]
     }
     ^offset.* {
-      checkArgs $c 1 "offset" {^offset -?[0-3]\.?[05]?$}	    
+      checkArgs $c 1 "offset" {^offset -?[0-3]\.?[05]?$}
       init 0
       setOffset [lindex $c 1]
     }
-    ^auto$ {	    
+    ^auto$ {
       init 0
       setMode "auto"
     }
@@ -835,36 +917,36 @@ proc doCommand {} {
       init 0
       setMode "manual"
     }
-    ^boost$ {	    
+    ^boost$ {
       init 0
       setMode "startBoost"
-    }	  
-    ^boost\ off$ {	    
+    }
+    ^boost\ off$ {
       init 0
       setMode "stopBoost"
     }
     ^vacation.* {
       if {[llength $c] == 4} {
-        checkArgs $c 3 "vacation" {^vacation [0-9]{2}-[01][0-9]-[0-3][0-9] [0-2][0-9]:[03][0] [0-9]{1,2}\.?[05]?$}	    
+        checkArgs $c 3 "vacation" {^vacation [0-9]{2}-[01][0-9]-[0-3][0-9] [0-2][0-9]:[03][0] [0-9]{1,2}\.?[05]?$}
         init 0
         setVacationMode [lindex $c 1] [lindex $c 2] [lindex $c 3]
-      } else { 
-        checkArgs $c 2 "vacation" {^vacation [0-9]{1,3} [0-9]{1,2}\.?[05]?$}	    
+      } else {
+        checkArgs $c 2 "vacation" {^vacation [0-9]{1,3} [0-9]{1,2}\.?[05]?$}
         init 0
         setAwayMode [lindex $c 1] [lindex $c 2]
       }
     }
-    ^timers$ {	    
+    ^timers$ {
       init $INIT(timer)
       puts [printTimers]
-    }	  
+    }
     ^timer.* {
       set params [lindex $c 1]
-      if {[llength $c] > 16} {	
+      if {[llength $c] > 16} {
         checkArgs $c 1 "timer" {^$}
       } elseif {[llength $c] == 2} {
         checkArgs $c 1 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun|work|weekend|everyday|today|tomorrow)$}
-        init 0	      
+        init 0
         getTimer $params
       } else {
         checkArgs $c 3 "timer" {^timer (mon|tue|wed|thu|fri|sat|sun|work|weekend|everyday|today|tomorrow) [0-9]{1,2}\.?[05]? [0-2][0-9]:[0-5][0].*$}
@@ -876,27 +958,30 @@ proc doCommand {} {
         }
         setTimer $params
       }
-    }	  
-    ^on$ {	    
+    }
+    ^on$ {
       init 0
       setTemperature "on"
-    }	  
-    ^off$ {	    
+    }
+    ^off$ {
       init 0
       setTemperature "off"
-    }	  
-    ^comfort$ {	    
+    }
+    ^comfort$ {
       init 0
       setTemperature "comfort"
     }
-    ^eco$ {	    
+    ^eco$ {
       init 0
       setTemperature "eco"
     }
     ^temp.* {
-      checkArgs $c 1 "temperature" {^temp [0-9]{1,2}\.?[05]?$}	    
+      checkArgs $c 1 "temperature" {^temp [0-9]{1,2}\.?[05]?$}
       init 0
       setTemperature [lindex $c 1]
+    }
+    ^json$ {
+      toJson
     }
     ^status$ {
       init [expr $INIT(device) + $INIT(mode) + $INIT(timer)]
