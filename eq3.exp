@@ -706,17 +706,26 @@ proc dumpThermostat {} {
 
 proc syncTime {} {
   global REQUESTS
+  global timeout
 
   set currentTime [currentTime]
   set currentDate [currentDate]
   set raw_status [writeRequest $REQUESTS(setTime) "[dateToHex $currentDate][timeToHex $currentTime]"]
 
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded after sync request in time ($timeout sec.)"
+    exit -1  
+  }
+
   parseMode $raw_status
   puts "\n[printStatus]"
+   
 }
 
 proc setVacationMode {date daytime temp} {
   global REQUESTS
+  global timeout
+  
   set part [split $date "-"]
   scan [lindex $part 0] %d year
   scan [lindex $part 1] %d month
@@ -726,6 +735,11 @@ proc setVacationMode {date daytime temp} {
   set enctemp [expr ($temp * 2 + 128)]
 
   set raw_status [writeRequest $REQUESTS(setVacationMode) "[decimalToHex $enctemp][decimalToHex $day][decimalToHex $year][decimalToHex $enctime][decimalToHex $month]"]
+
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded after vacation mode request in time ($timeout sec.)"
+    exit -1  
+  }
 
   puts "\nVacation mode:\t\t\t$date $daytime $temp°C"
   parseMode $raw_status
@@ -779,8 +793,14 @@ proc setTimer {params} {
 
 proc setComfortEco {comfort eco} {
   global REQUESTS
+  global timeout
 
   set raw_status [writeRequest $REQUESTS(setComfortEco) "[tempToHex $comfort][tempToHex $eco]"]
+
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded to after comfort/eco request in time ($timeout sec.)"
+    exit -1  
+  }
 
   puts "\nComfort temperature:\t\t$comfort°C"
   puts "Eco temperature:\t\t$eco°C"
@@ -809,8 +829,14 @@ proc setWindowMode {temp time} {
 
 proc setOffset {temp} {
   global REQUESTS
+  global timeout
 
   set raw_status [writeRequest $REQUESTS(setOffset) "[decimalToHex [expr ($temp + 3.5) / 0.5]]"]
+
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded after offset request in time ($timeout sec.)"
+    exit -1  
+  }
 
   puts "\nOffset temperature:\t\t$temp°C"
 
@@ -820,6 +846,7 @@ proc setOffset {temp} {
 
 proc setMode {mode} {
   global REQUESTS
+  global timeout
 
   switch $mode {
     "auto" {
@@ -835,12 +862,19 @@ proc setMode {mode} {
       set raw_status [writeRequest $REQUESTS(stopBoost) ""]
     }
   }
+  
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded after mode request in time ($timeout sec.)"
+    exit -1  
+  }
+  
   parseMode $raw_status
   puts "\n[printStatus]"
 }
 
 proc setTemperature {temp} {
   global REQUESTS
+  global timeout
 
   set raw_status ""
   if {"comfort" == $temp} {
@@ -853,6 +887,11 @@ proc setTemperature {temp} {
     set raw_status [writeRequest $REQUESTS(setOff) ""]
   } else {
     set raw_status [writeRequest $REQUESTS(setTemperature) "[tempToHex $temp]"]
+  }
+
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded after temperature request in time ($timeout sec.)"
+    exit -1  
   }
 
   parseMode $raw_status
@@ -875,8 +914,15 @@ proc reset {} {
 
 proc otherRequest {command} {
   global REQUESTS
+  global timeout
 
   set raw_status [writeRequest $REQUESTS($command) ""]
+  
+  if {$raw_status == ""} {
+    puts "ERROR: Thermostat hasn't responded in time ($timeout sec.)"
+    exit -1  
+  }
+  
   parseMode $raw_status
   puts "\n[printStatus]"
 }
