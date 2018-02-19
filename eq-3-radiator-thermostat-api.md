@@ -17,6 +17,9 @@
 - Set: n/a
 
 **Read serial number from device**
+
+The serial number that is printed on the little badge between the two batteries can be quired as follows:
+
 ```
 char-write-req 0411 00
                     01 6e 00 00 7f 75 81 60 66 61 66 64 61 64 9b
