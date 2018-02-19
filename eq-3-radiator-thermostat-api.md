@@ -16,7 +16,7 @@
 - Characteristic value/descriptor: 65 71 2d 33 
 - Set: n/a
 
-** Read serial number from device**
+**Read serial number from device**
 ```
 char-write-req 0411 00
                     01 6e 00 00 7f 75 81 60 66 61 66 64 61 64 9b
