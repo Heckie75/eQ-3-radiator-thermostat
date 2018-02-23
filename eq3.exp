@@ -78,10 +78,12 @@ set HELP(timer) "\
 \                                                 base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
 \                                                 target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
 \                                                 hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40"
+set HELP(serial) "\
+  serial                                         - Prints serial of thermostat (see little badge where batteries are)"
 set HELP(lock) "\
-  lock                                           - Locks thermostat (LOC). No PIN required!"
+  lock                                           - Locks thermostat (LOC)"
 set HELP(unlock) "\
-  unlock                                         - Unlocks thermostat. No PIN required!"
+  unlock                                         - Unlocks thermostat"
 set HELP(clear) "\
   clear                                          - Clear buffer of last request (will be printed in debug mode, set log_user to 1 in code!)"
 set HELP(status) "\
@@ -102,6 +104,7 @@ set DELAY                       100
 set INIT(device)                1
 set INIT(mode)                  2
 set INIT(timer)                 4
+set INIT(serial)                8
 
 set HANDLES(name)              "0321"
 set HANDLES(vendor)            "0311"
@@ -129,6 +132,7 @@ set REQUESTS(setEcoTemperature) "44"
 
 set REQUESTS(lock)             "8001"
 set REQUESTS(unlock)           "8000"
+set REQUESTS(serial)           "00"
 set REQUESTS(reset)            "f0"
 set REQUESTS(clear)            "00000000000000000000000000000000"
 
@@ -156,6 +160,8 @@ set thermostat(mac)            ""
 set thermostat(name)           ""
 set thermostat(vendor)         ""
 set thermostat(last_request)   ""
+set thermostat(serial)         ""
+set thermostat(pin)            ""
 set thermostat(status)         ""
 set thermostat(mode)           ""
 set thermostat(valve)          ""
@@ -203,6 +209,7 @@ proc help {} {
   puts "\nOthers:"
   puts $HELP(lock)
   puts $HELP(unlock)
+  puts $HELP(serial)
   puts $HELP(status)
   puts $HELP(json)
   puts $HELP(clear)
@@ -912,6 +919,47 @@ proc reset {} {
   puts "\nFactory reset done!"
 }
 
+proc ascii {s i} {
+  return [scan [string index $s $i] %c]
+}
+
+proc parseSerial {} {
+  global REQUESTS
+  global thermostat
+  global timeout
+
+  set raw_serial [writeRequest $REQUESTS(serial) ""]
+
+  if {$raw_serial == ""} {
+    puts "ERROR: Thermostat hasn't responded in time ($timeout sec.)"
+    exit -1
+  }
+
+  set serial ""
+  for {set i 4} {$i < 14} {incr i} {
+    set v [hexToDecimal [lindex $raw_serial $i]]
+    append serial "[format %c [expr $v - 48]]"
+  }
+  set thermostat(serial) $serial
+
+#  set pin ""
+#  append pin [expr ( [ascii $serial 3]       ^  [ascii $serial 7])       % 10]
+#  append pin [expr ( [ascii $serial 4]       ^  [ascii $serial 8])       % 10]
+#  append pin [expr ( [ascii $serial 5]       ^  [ascii $serial 9])       % 10]
+#  append pin [expr (([ascii $serial 6] - 48) ^ ([ascii $serial 0] - 65)) % 10]
+#  set thermostat(pin) $pin  
+
+}
+
+proc printSerial {} {
+  global thermostat
+
+  parseSerial
+  puts "\nSerial no.:\t\t$thermostat(serial)"
+\  puts "Pair:\t\t\t$thermostat(pin)"
+  puts ""
+}
+
 proc otherRequest {command} {
   global REQUESTS
   global timeout
@@ -1030,7 +1078,7 @@ proc doCommand {} {
       toJson
     }
     ^status$ {
-      init [expr $INIT(device) + $INIT(mode) + $INIT(timer)]
+      init [expr $INIT(device) + $INIT(mode) + $INIT(timer) + $INIT(serial)]
       dumpThermostat
     }
     ^lock$ {
@@ -1040,6 +1088,10 @@ proc doCommand {} {
     ^unlock$ {
       init 0
       otherRequest "unlock"
+    }
+    ^serial$ {
+      init $INIT(serial)
+      printSerial
     }
     ^clear$ {
       init 0
