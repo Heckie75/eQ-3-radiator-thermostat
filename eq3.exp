@@ -956,7 +956,7 @@ proc printSerial {} {
 
   parseSerial
   puts "\nSerial no.:\t\t$thermostat(serial)"
-\  puts "Pair:\t\t\t$thermostat(pin)"
+  puts "Pair:\t\t\t$thermostat(pin)"
   puts ""
 }
 
