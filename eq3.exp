@@ -711,6 +711,13 @@ proc dumpThermostat {} {
   puts $out
 }
 
+proc dumpThermostatShort {} {
+  append out [printTimers]
+  append out "\n"
+  append out [printDevice]
+  puts $out
+}
+
 proc syncTime {} {
   global REQUESTS
   global timeout
@@ -1080,6 +1087,9 @@ proc doCommand {} {
     ^status$ {
       init [expr $INIT(device) + $INIT(mode) + $INIT(timer) + $INIT(serial)]
       dumpThermostat
+    }
+	^stat$ {
+      printStatus
     }
     ^lock$ {
       init 0
