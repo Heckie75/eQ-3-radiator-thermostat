@@ -584,7 +584,7 @@ proc printDevice {} {
 
 proc toJson {} {
   global REQUESTS
-  global DAYS
+  #global DAYS
   global MODE_BY_NAME
   global thermostat
 
@@ -596,7 +596,7 @@ proc toJson {} {
     exit -1
   }
 
-  readTimers
+  #readTimers
 
   set currentTime [currentTime]
   set currentDate [currentDate]
@@ -613,28 +613,28 @@ proc toJson {} {
   } else {
     append out "  \"vacation\" : null,\n"
   }
-  append out "  \"timers\" : \{\n"
-  for {set day 0} {$day < 9} {incr day} {
-    append out "    \"[lindex $DAYS $day]\" : \[\n"
-    for {set event 1} {$event <= 7} {incr event} {
-      set key "[lindex $day 0]_[lindex $event 0]"
-      append out "      \{\n"
-      append out "        \"from\" : \"$thermostat("timer_start_$key")\",\n"
-      append out "        \"to\" : \"$thermostat("timer_end_$key")\",\n"
-      append out "        \"temperature\" : $thermostat("timer_temperature_$key")\n"
-      append out "      \}"
-      if {"24:00" == "$thermostat("timer_end_$key")"} {
-        break
-      }
-      append out ",\n"
-    }
-    append out "\n    ]"
-    if {$day < 8} {
-      append out ","
-    }
-    append out "\n"
-  }
-  append out "  \}\n"
+  #append out "  \"timers\" : \{\n"
+  #for {set day 0} {$day < 9} {incr day} {
+  #  append out "    \"[lindex $DAYS $day]\" : \[\n"
+  #  for {set event 1} {$event <= 7} {incr event} {
+  #    set key "[lindex $day 0]_[lindex $event 0]"
+  #    append out "      \{\n"
+  #    append out "        \"from\" : \"$thermostat("timer_start_$key")\",\n"
+  #    append out "        \"to\" : \"$thermostat("timer_end_$key")\",\n"
+  #    append out "        \"temperature\" : $thermostat("timer_temperature_$key")\n"
+  #    append out "      \}"
+  #    if {"24:00" == "$thermostat("timer_end_$key")"} {
+  #      break
+  #    }
+  #    append out ",\n"
+  #  }
+  #  append out "\n    ]"
+  #  if {$day < 8} {
+  #    append out ","
+  #  }
+  #  append out "\n"
+  #}
+  #append out "  \}\n"
   append out "\}"
 
   puts $out
@@ -1088,8 +1088,8 @@ proc doCommand {} {
       init [expr $INIT(device) + $INIT(mode) + $INIT(timer) + $INIT(serial)]
       dumpThermostat
     }
-	^stat$ {
-	  init [expr $INIT(device) + $INIT(mode) + $INIT(serial)]
+    ^stat$ {
+      init [expr $INIT(device) + $INIT(mode)]
       printStatus
     }
     ^lock$ {
