@@ -1089,6 +1089,7 @@ proc doCommand {} {
       dumpThermostat
     }
 	^stat$ {
+	  init [expr $INIT(device) + $INIT(mode) + $INIT(serial)]
       printStatus
     }
     ^lock$ {
