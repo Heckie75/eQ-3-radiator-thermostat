@@ -1,15 +1,13 @@
 <?php
-
+// TODO handle errors: send error response
+// TODO logging
 $script = "/home/pi/eQ-3-radiator-thermostat/eq3.exp ";
 $mac_regex = "/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/";
-//TODO $error_response = '{"error":""}';
 
-//$modes = array("auto", "manual");
 $modes = array("ON" => "auto", "OFF" => "manual");
 
 function readShortStatus($mac) {
   global $script;
-  //echo "read short json MAC: " . $mac;
   $cmd = $script . $mac . " devjson";
 
   return shell_exec($cmd);
@@ -17,26 +15,19 @@ function readShortStatus($mac) {
 
 function setTemperature($mac, $temp) {
   global $script;
-  //echo "set temperature to " . $temp . "\n";
   $cmd = $script . $mac . " temp " . $temp;
-  // TODO log
   return shell_exec($cmd);
 }
 
 function setComforteco($mac, $comfort, $eco) {
   global $script;
-  //echo "set temperature to " . $temp . "\n";
   $cmd = $script . $mac . " comforteco " . $comfort . " " . $eco;
-  // TODO log
   return shell_exec($cmd);
 }
 
 function setMode($mac, $mode) {
   global $script;
-  //echo "set mode to " . $mode . "\n";
   $cmd = $script . $mac . " " . $mode;
-  //echo $cmd;
-  // TODO log
   return shell_exec($cmd);
 }
 
