@@ -1,3 +1,9 @@
+
+# eQ-3-radiator-thermostat for OpenHab2
+
+An extension of @Heckie75 repository. It allows to control the eqiva eQ-3 bluetooth radiator thermostat directly from OpenHab2 whith HTTP or EXEC binding. The bluethooth binding is not necessary.
+
+
 # eQ-3-radiator-thermostat
 
 Full-featured shell script interface based on expect and gatttool for eqiva eQ-3 radiator thermostat
