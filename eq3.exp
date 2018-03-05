@@ -495,14 +495,14 @@ proc getModeAsJson {} {
   foreach key [lsort [array names MODE]] {
 
     if {[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0] || [hexToDecimal $thermostat(mode)] & $key} {
-      set v "true"
+      set v \"ON\"
     } else {
-      set v "false"
+      set v \"OFF\"
     }
     append json "    \"" $MODE($key) "\" : " $v ",\n"
   }
-  append json "    \"on\" : " [expr $thermostat(temperature) == 30 ? "true" : "false" ] ",\n"
-  append json "    \"off\" : " [expr $thermostat(temperature) == 4.5 ? "true" : "false" ] "\n"
+  append json "    \"on\" : \"" [expr $thermostat(temperature) == 30 ? "ON" : "OFF" ] "\",\n"
+  append json "    \"off\" : \"" [expr $thermostat(temperature) == 4.5 ? "ON" : "OFF" ] "\"\n"
   append json "  \}"
   return $json
 }
@@ -663,9 +663,9 @@ proc toJsonShort {} {
   append out "  \"valve\" : $thermostat(valve),\n"
   append out "  \"mode\" : [getModeAsJson],\n"
   if {[hexToDecimal $thermostat(mode)] & $MODE_BY_NAME(vacation)} {
-    append out "  \"vacation\" : \"$thermostat(vacation_date) $thermostat(vacation_time)\",\n"
+    append out "  \"vacation\" : \"$thermostat(vacation_date) $thermostat(vacation_time)\"\n"
   } else {
-    append out "  \"vacation\" : null,\n"
+    append out "  \"vacation\" : null\n"
   }
   append out "\}"
 
