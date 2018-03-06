@@ -1,8 +1,119 @@
 
 # eQ-3-radiator-thermostat for OpenHab2
 
-An extension of @Heckie75 repository. It allows to control the eqiva eQ-3 bluetooth radiator thermostat directly from OpenHab2 whith HTTP or EXEC binding. The bluethooth binding is not necessary.
+An extension of @Heckie75 repository. It allows to control the eqiva eQ-3 bluetooth radiator thermostat directly from OpenHab2 whith HTTP or EXEC binding. The OpenHab-Bluethooth binding is not necessary.
+You can also control the thermostat over HTTP with GET or POST requests:
 
+Request (thermostat status):
+```
+http://192.168.1.100/eq3/eq3.php?mac=00-11-42-DD-EE-69
+```
+
+Response (thermostat status):
+```
+{
+  "mac" : "00-11-42-DD-EE-69",
+  "temperature" : 22.0,
+  "valve" : 80,
+  "mode" : {
+    "auto" : "ON",
+    "manual" : "OFF",
+    "low battery" : "OFF",
+    "open window" : "OFF",
+    "vacation" : "OFF",
+    "locked" : "OFF",
+    "boost" : "OFF",
+    "unknown" : "OFF",
+    "dst" : "ON",
+    "on" : "OFF",
+    "off" : "OFF"
+  },
+  "vacation" : null
+}
+```
+
+The thermostat's parameters can be setted with HTTP-requests, for example:
+
+Request (set temperature to 24 °C and thermostat mode to manual):
+```
+http://192.168.1.100/eq3/eq3.php?mac=00-11-42-DD-EE-69&temperature=24.0&mode=manual
+```
+
+Response (set temperature to 24 °C and thermostat mode to manual):
+```
+{
+  "mac" : "00-11-42-DD-EE-69",
+  "temperature" : 24.0,
+  "valve" : 90,
+  "mode" : {
+    "auto" : "OFF",
+    "manual" : "ON",
+    "low battery" : "OFF",
+    "open window" : "OFF",
+    "vacation" : "OFF",
+    "locked" : "OFF",
+    "boost" : "OFF",
+    "unknown" : "OFF",
+    "dst" : "ON",
+    "on" : "OFF",
+    "off" : "OFF"
+  },
+  "vacation" : null
+}
+``` 
+
+## Setup
+
+### Expect and bluetooth paaring
+
+0. Check pre-conditions
+
+Install `expect`:
+```
+$ sudo apt install expect
+```
+
+Check if `gatttool` is available:
+```
+$ gatttool
+Usage:
+  gatttool [OPTION...]
+...
+
+```
+
+1. Discover the MAC address of your thermostat
+
+```
+$ sudo hcitool lescan
+LE Scan ...
+38:01:95:84:A8:B1 (unknown)
+00:1A:22:0A:91:CF (unknown)
+00:1A:22:0A:91:CF CC-RT-BLE
+```
+
+It is the one related to the device CC-RT-BLE.
+
+2. Pair bluetooth
+
+Actually I am not 100% sure, but it seems that the thermostat must be explicitly paired (maybe only newer versions). Therefore you have to press the button on the termostat
+and start the pairing procedure. It depends on your linux distribution how devices must be paired there. The pin seems not to be required for pairing.
+
+After that check if you can run expect script:
+
+```
+$ ./eq3.exp 00:1A:22:07:FD:03 sync
+
+Temperature:			10.5°C
+Valve:				0%
+Mode:				manual 
+Vacation mode:			off
+```
+
+## Nginx and PHP
+TODO
+
+Below is the @Heckie75's original README
 
 # eQ-3-radiator-thermostat
 
