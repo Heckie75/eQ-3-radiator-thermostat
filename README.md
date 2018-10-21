@@ -114,7 +114,7 @@ Vacation mode:			off
 TODO
 
 ## OpenHab2
-1. Install HTTP-Binding
+1. Install HTTP-Binding and JSONPath Transformation
 
 2. Item
 
