@@ -120,22 +120,27 @@ TODO
 
 /etc/openhab2/itemsthermostat.items
 
+```
 Number thermostat_wz "Thermostat Wohnzimmer [%.1f °C]" <temperature> { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&temperature=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:600000:JSONPATH($.temperature)]" }
 Switch thermostat_wz_mode "Thermostat Auto [%s]" { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&mode=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:600000:JSONPATH($.mode.auto)]" }
 Switch thermostat_wz_boost "Thermostat Boost [%s]" { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&boost=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:120000:JSONPATH($.mode.boost)]" }
 Number thermostat_wz_valve "Thermostat Ventil [%.1f]"  { http="<[thermostatWohnzimmer:600000:JSONPATH($.valve)]"}
+```
 
 3. HTTP-config 
 
 /etc/openhab2/services/http.cfg
 
+```
 thermostatWohnzimmer.url=http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69{Authorization=Basic SECRET}
 thermostatWohnzimmer.updateInterval=120000
+```
 
 4. Sitemap 
 
 /etc/openhab2/sitemaps/default.sitemap
 
+```
 sitemap default label="SmartHome"
 {
 
@@ -145,6 +150,7 @@ sitemap default label="SmartHome"
   Switch item=thermostat_wz_boost
 
 }
+```
 
 Below is the @Heckie75's original README
 
