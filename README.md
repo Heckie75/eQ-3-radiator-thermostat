@@ -110,8 +110,13 @@ Mode:				manual
 Vacation mode:			off
 ```
 
-## Nginx and PHP
-TODO
+## WebServer and PHP
+Install any WebServer (NginX, Apache, Lighttpd) with php support.
+Then you can call the php script at url like this:
+
+```
+http://localhost/eq3/eq3.php?mac=00-1A-22-77-42-69
+```
 
 ## OpenHab2
 1. Install HTTP-Binding and JSONPath Transformation
