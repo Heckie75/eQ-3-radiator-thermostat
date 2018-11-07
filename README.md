@@ -138,7 +138,34 @@ import java.util.concurrent.locks.ReentrantLock
 
 val ReentrantLock lock = new ReentrantLock()
 var eqUrl = "http://localhost/eq3/eq3.php?mac="
-var mac = "00-1A-22-42-77-69"
+var mac = "00-1A-22-77-42-69"
+
+// temperature, valve, boost, mode
+val updateThermostat = [ response,
+                         GenericItem t,
+                         GenericItem v,
+                         GenericItem b,
+                         GenericItem m  |
+
+  if (response !== null) {
+    // TODO handle { "error" : "Connection failed." }
+    var temperature = transform("JSONPATH", "$.temperature", response)
+    var valve = transform("JSONPATH", "$.valve", response)
+    var mode_auto = transform("JSONPATH", "$.mode.auto", response)
+    var mode_boost = transform("JSONPATH", "$.mode.boost", response)
+    var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
+    var valveNumber = Float::parseFloat(String::format("%s", valve))
+    t.postUpdate(temperatureNumber)
+    v.postUpdate(valveNumber)
+    m.postUpdate(mode_auto)
+    b.postUpdate(mode_boost)
+    logInfo("thermostat", "update successful")
+  } else {
+   logInfo("thermostat", "update error: response is null")
+  }
+
+]
+
 
 rule  "Thermostat Wohzimmer"
   when
@@ -146,51 +173,41 @@ rule  "Thermostat Wohzimmer"
   then
     lock.lock()
     try {
-      var command = ""
-      var url = eqUrl + mac + "&temperature=" + thermostat_wz.state
+      //var prevState = thermostat_wz.previousState.state
+      //logInfo("thermostat", "prev state " + prevState)
+
+      var command = "temperature="
+      var newState = thermostat_wz.state
+      var url = eqUrl + mac + "&" + command + newState
       url += "&boost=" + thermostat_wz_boost.state
-      //logInfo("thermostat", "call wz URL " + url)
+      logInfo("thermostat", "call wz URL " + url)
       var response = sendHttpGetRequest(url)
-      if (response !== null) {
-        var temperature = transform("JSONPATH", "$.temperature", response)
-        var valve = transform("JSONPATH", "$.valve", response)
-        var mode_auto = transform("JSONPATH", "$.mode.auto", response)
-        var mode_boost = transform("JSONPATH", "$.mode.boost", response)
-        var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
-        var valveNumber = Float::parseFloat(String::format("%s", valve))
-        thermostat_wz.postUpdate(temperatureNumber)
-        thermostat_wz_valve.postUpdate(valveNumber)
-        thermostat_wz_mode.postUpdate(mode_auto)
-        thermostat_wz_boost.postUpdate(mode_boost)
-      }
+      updateThermostat.apply(response,
+                             thermostat_wz,
+                             thermostat_wz_valve,
+                             thermostat_wz_mode,
+                             thermostat_wz_boost)
     } finally {
       lock.unlock()
     }
   end
-  
+
 rule "Thermostat Wohzimmer Update"
   when
-    // update every minute
+    // update state every minute at 0th second
     Time cron "0 0/1 * * * ?"
   then
     lock.lock()
     try {
       var url = eqUrl + mac
+      logInfo("thermostat", "read thermostat wz " + url)
       var response = sendHttpGetRequest(url)
-      if (response !== null) {
-        var temperature = transform("JSONPATH", "$.temperature", response)
-        var valve = transform("JSONPATH", "$.valve", response)
-        var mode_auto = transform("JSONPATH", "$.mode.auto", response)
-        var mode_boost = transform("JSONPATH", "$.mode.boost", response)
-
-        var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
-        var valveNumber = Float::parseFloat(String::format("%s", valve))
-
-        thermostat_wz.postUpdate(temperatureNumber)
-        thermostat_wz_valve.postUpdate(valveNumber)
-        thermostat_wz_mode.postUpdate(mode_auto)
-        thermostat_wz_boost.postUpdate(mode_boost)
-      }
+      //logInfo("thermostat", "resp " + response)
+      updateThermostat.apply(response,
+                             thermostat_wz,
+                             thermostat_wz_valve,
+                             thermostat_wz_mode,
+                             thermostat_wz_boost)
     } finally {
       lock.unlock()
     }
