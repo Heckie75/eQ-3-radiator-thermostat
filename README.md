@@ -143,80 +143,108 @@ import java.util.concurrent.locks.ReentrantLock
 
 val ReentrantLock lock = new ReentrantLock()
 var eqUrl = "http://localhost/eq3/eq3.php?mac="
-var mac = "00-1A-22-77-42-69"
+var mac = "00-11-22-33-44-69"
 
 // temperature, valve, boost, mode
-val updateThermostat = [ response,
-                         GenericItem t,
-                         GenericItem v,
-                         GenericItem b,
-                         GenericItem m  |
+val readThermostat = [url,
+                      GenericItem t,
+                      GenericItem v,
+                      GenericItem m,
+                      GenericItem b  |
 
-  if (response !== null) {
-    // TODO handle { "error" : "Connection failed." }
-    var temperature = transform("JSONPATH", "$.temperature", response)
-    var valve = transform("JSONPATH", "$.valve", response)
-    var mode_auto = transform("JSONPATH", "$.mode.auto", response)
-    var mode_boost = transform("JSONPATH", "$.mode.boost", response)
-    var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
-    var valveNumber = Float::parseFloat(String::format("%s", valve))
-    t.postUpdate(temperatureNumber)
-    v.postUpdate(valveNumber)
-    m.postUpdate(mode_auto)
-    b.postUpdate(mode_boost)
-    logInfo("thermostat", "update successful")
-  } else {
-   logInfo("thermostat", "update error: response is null")
+  val ReentrantLock lock = new ReentrantLock()
+
+  lock.lock()
+  try{
+    logInfo("thermostat", "read thermostat " + url)
+    var response = sendHttpGetRequest(url)
+
+    if (response !== null) {
+      // TODO handle { "error" : "Connection failed." }
+      var temperature = transform("JSONPATH", "$.temperature", response)
+      var valve = transform("JSONPATH", "$.valve", response)
+      var mode_auto = transform("JSONPATH", "$.mode.auto", response)
+      var mode_boost = transform("JSONPATH", "$.mode.boost", response)
+
+      var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
+      var valveNumber = Float::parseFloat(String::format("%s", valve))
+
+      t.postUpdate(temperatureNumber)
+      v.postUpdate(valveNumber)
+      m.postUpdate(mode_auto)
+      b.postUpdate(mode_boost)
+
+      logInfo("thermostat", "update successful")
+    } else {
+      logInfo("thermostat", "update error: response is null")
+    }
+  } finally {
+    lock.unlock()
   }
 
 ]
 
 
-rule  "Thermostat Wohzimmer"
-  when
-    Item thermostat_wz changed or Item thermostat_wz_boost changed
-  then
-    lock.lock()
-    try {
-      //var prevState = thermostat_wz.previousState.state
-      //logInfo("thermostat", "prev state " + prevState)
 
-      var command = "temperature="
-      var newState = thermostat_wz.state
-      var url = eqUrl + mac + "&" + command + newState
-      url += "&boost=" + thermostat_wz_boost.state
-      logInfo("thermostat", "call wz URL " + url)
-      var response = sendHttpGetRequest(url)
-      updateThermostat.apply(response,
-                             thermostat_wz,
-                             thermostat_wz_valve,
-                             thermostat_wz_mode,
-                             thermostat_wz_boost)
-    } finally {
-      lock.unlock()
-    }
-  end
-
-rule "Thermostat Wohzimmer Update"
+rule  "Thermostat Temperature"
   when
-    // update state every minute at 0th second
-    Time cron "0 0/1 * * * ?"
+    Item thermostat_wz changed
   then
     lock.lock()
     try {
       var url = eqUrl + mac
-      logInfo("thermostat", "read thermostat wz " + url)
-      var response = sendHttpGetRequest(url)
-      //logInfo("thermostat", "resp " + response)
-      updateThermostat.apply(response,
-                             thermostat_wz,
-                             thermostat_wz_valve,
-                             thermostat_wz_mode,
-                             thermostat_wz_boost)
+      url +=  "&temperature=" + thermostat_wz.state
+      logInfo("thermostat", "call URL " + url)
+      sendHttpGetRequest(url)
+    } finally {
+      lock.unlock()
+      readThermostat.apply(eqUrl + mac,
+                           thermostat_wz,
+                           thermostat_wz_valve,
+                           thermostat_wz_mode,
+                           thermostat_wz_boost)
+    }
+  end
+
+rule  "Thermostat Boost"
+  when
+    Item thermostat_wz_boost changed
+  then
+    lock.lock()
+    try {
+      var url = eqUrl + mac
+      url += "&boost=" + thermostat_wz_boost.state
+      logInfo("thermostat", "call URL " + url)
+      sendHttpGetRequest(url)
+    } finally {
+      lock.unlock()
+      readThermostat.apply(eqUrl + mac,
+                           thermostat_wz,
+                           thermostat_wz_valve,
+                           thermostat_wz_mode,
+                           thermostat_wz_boost)
+    }
+  end
+
+
+rule "Thermostat Read"
+  when
+    // execute every minute at 0th second
+    Time cron "0 0/1 * * * ?"
+  then
+    lock.lock()
+    try {
+
+      readThermostat.apply(eqUrl + mac,
+                           thermostat_wz,
+                           thermostat_wz_valve,
+                           thermostat_wz_mode,
+                           thermostat_wz_boost)
     } finally {
       lock.unlock()
     }
   end
+
 ```
 
 3. Without Rules
