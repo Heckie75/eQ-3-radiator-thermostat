@@ -139,24 +139,21 @@ Number thermostat_wz_valve "Thermostat Ventil [%.1f]"
 /etc/openhab2/rules/thermostat.rules
 
 ```
-import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.locks.ReentrantLock 
 
-val ReentrantLock lock = new ReentrantLock()
-var eqUrl = "http://localhost/eq3/eq3.php?mac="
-var mac = "00-11-22-33-44-69"
+val ReentrantLock lock = new ReentrantLock() 
+var eqUrl = "http://localhost/eq3/eq3.php?mac=" 
+var mac_wz =     "00-1A-22-33-44-69" 
+// here comes other thermostats
 
-// temperature, valve, boost, mode
-val readThermostat = [url,
-                      GenericItem t,
-                      GenericItem v,
-                      GenericItem m,
-                      GenericItem b  |
+val readThermostat = [ eqUrl, mac |
 
-  val ReentrantLock lock = new ReentrantLock()
+  val ReentrantLock lock2 = new ReentrantLock()
 
-  lock.lock()
+  lock2.lock()
   try{
-    logInfo("thermostat", "read thermostat " + url)
+    var url = eqUrl + mac
+    logDebug("thermostat", "read thermostat " + url)
     var response = sendHttpGetRequest(url)
 
     if (response !== null) {
@@ -169,80 +166,76 @@ val readThermostat = [url,
       var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
       var valveNumber = Float::parseFloat(String::format("%s", valve))
 
-      t.postUpdate(temperatureNumber)
-      v.postUpdate(valveNumber)
-      m.postUpdate(mode_auto)
-      b.postUpdate(mode_boost)
+      // TODO use map or group
+      if(mac == "00-1A-22-0D-E1-69") {
+        logDebug("thermostat", "Update " + "Wohnzimmer")
+        thermostat_wz.postUpdate(temperatureNumber)
+        thermostat_wz_valve.postUpdate(valveNumber)
+        thermostat_wz_mode.postUpdate(mode_auto)
+        thermostat_wz_boost.postUpdate(mode_boost)
+      }
+      // here comes other thermostats
 
-      logInfo("thermostat", "update successful")
+      logDebug("thermostat", "update successful " + mac)
     } else {
-      logInfo("thermostat", "update error: response is null")
+      logDebug("thermostat", "update error: response is null")
     }
   } finally {
-    lock.unlock()
+    lock2.unlock()
   }
 
 ]
 
+val updateTemperature = [ eqUrl, mac, GenericItem item |
+
+  var url = eqUrl + mac
+  url +=  "&temperature=" + item.state
+  logDebug("thermostat", "call URL " + url)
+  sendHttpGetRequest(url)
+  
+]
+
+val updateBoost = [ eqUrl, mac, GenericItem item |
+
+  var url = eqUrl + mac
+  url +=  "&boost=" + item.state
+  logDebug("thermostat", "call URL " + url)
+  sendHttpGetRequest(url)
+
+]
 
 
-rule  "Thermostat Temperature"
+rule  "Thermostat WZ Temperature"
   when
     Item thermostat_wz changed
   then
-    lock.lock()
-    try {
-      var url = eqUrl + mac
-      url +=  "&temperature=" + thermostat_wz.state
-      logInfo("thermostat", "call URL " + url)
-      sendHttpGetRequest(url)
-    } finally {
-      lock.unlock()
-      readThermostat.apply(eqUrl + mac,
-                           thermostat_wz,
-                           thermostat_wz_valve,
-                           thermostat_wz_mode,
-                           thermostat_wz_boost)
-    }
+    updateTemperature.apply(eqUrl, mac_wz, thermostat_wz)
+    readThermostat.apply(eqUrl, mac_wz)
   end
 
-rule  "Thermostat Boost"
+rule  "Thermostat WZ Boost"
   when
     Item thermostat_wz_boost changed
   then
-    lock.lock()
-    try {
-      var url = eqUrl + mac
-      url += "&boost=" + thermostat_wz_boost.state
-      logInfo("thermostat", "call URL " + url)
-      sendHttpGetRequest(url)
-    } finally {
-      lock.unlock()
-      readThermostat.apply(eqUrl + mac,
-                           thermostat_wz,
-                           thermostat_wz_valve,
-                           thermostat_wz_mode,
-                           thermostat_wz_boost)
-    }
-  end
+    updateBoost.apply(eqUrl, mac_wz, thermostat_wz_boost)
+    readThermostat.apply(eqUrl, mac_wz)
+  end 
 
+// copy both rules for other thermostats
+  
 
 rule "Thermostat Read"
   when
-    // execute every minute at 0th second
-    Time cron "0 0/1 * * * ?"
+    // execute every two minutes at 0th second
+    Time cron "0 0/2 * * * ?"
   then
     lock.lock()
     try {
-
-      readThermostat.apply(eqUrl + mac,
-                           thermostat_wz,
-                           thermostat_wz_valve,
-                           thermostat_wz_mode,
-                           thermostat_wz_boost)
+      readThermostat.apply(eqUrl, mac_wz)
     } finally {
       lock.unlock()
     }
+	// here comes other thermostats
   end
 
 ```
