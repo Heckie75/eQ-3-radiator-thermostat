@@ -167,7 +167,9 @@ val readThermostat = [ eqUrl, mac |
       var valveNumber = Float::parseFloat(String::format("%s", valve))
 
       // TODO use map or group
-      if(mac == "00-1A-22-0D-E1-69") {
+      // ? how to compare two strings in OpenHab?
+      // must be mac_wz.equals(mac), but I use this ugly comparation
+      if(mac == "00-1A-22-33-44-69") {
         logDebug("thermostat", "Update " + "Wohnzimmer")
         thermostat_wz.postUpdate(temperatureNumber)
         thermostat_wz_valve.postUpdate(valveNumber)
