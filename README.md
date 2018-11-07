@@ -116,9 +116,92 @@ TODO
 ## OpenHab2
 1. Install HTTP-Binding and JSONPath Transformation
 
-2. Item
+2. Approach to read and write thermostat values with Rules
 
-/etc/openhab2/itemsthermostat.items
+2.1 Item
+
+/etc/openhab2/items/thermostat.items
+
+```
+Number thermostat_wz "Thermostat Wohnzimmer [%.1f °C]" <temperature>
+Switch thermostat_wz_mode "Thermostat Auto [%s]"
+Switch thermostat_wz_boost "Thermostat Boost [%s]"
+Number thermostat_wz_valve "Thermostat Ventil [%.1f]"
+```
+
+2.2 Rules
+
+/etc/openhab2/rules/thermostat.rules
+
+```
+import java.util.concurrent.locks.ReentrantLock
+
+val ReentrantLock lock = new ReentrantLock()
+var eqUrl = "http://localhost/eq3/eq3.php?mac="
+var mac = "00-1A-22-42-77-69"
+
+rule  "Thermostat Wohzimmer"
+  when
+    Item thermostat_wz changed or Item thermostat_wz_boost changed
+  then
+    lock.lock()
+    try {
+      var command = ""
+      var url = eqUrl + mac + "&temperature=" + thermostat_wz.state
+      url += "&boost=" + thermostat_wz_boost.state
+      //logInfo("thermostat", "call wz URL " + url)
+      var response = sendHttpGetRequest(url)
+      if (response !== null) {
+        var temperature = transform("JSONPATH", "$.temperature", response)
+        var valve = transform("JSONPATH", "$.valve", response)
+        var mode_auto = transform("JSONPATH", "$.mode.auto", response)
+        var mode_boost = transform("JSONPATH", "$.mode.boost", response)
+        var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
+        var valveNumber = Float::parseFloat(String::format("%s", valve))
+        thermostat_wz.postUpdate(temperatureNumber)
+        thermostat_wz_valve.postUpdate(valveNumber)
+        thermostat_wz_mode.postUpdate(mode_auto)
+        thermostat_wz_boost.postUpdate(mode_boost)
+      }
+    } finally {
+      lock.unlock()
+    }
+  end
+  
+rule "Thermostat Wohzimmer Update"
+  when
+    // update every minute
+    Time cron "0 0/1 * * * ?"
+  then
+    lock.lock()
+    try {
+      var url = eqUrl + mac
+      var response = sendHttpGetRequest(url)
+      if (response !== null) {
+        var temperature = transform("JSONPATH", "$.temperature", response)
+        var valve = transform("JSONPATH", "$.valve", response)
+        var mode_auto = transform("JSONPATH", "$.mode.auto", response)
+        var mode_boost = transform("JSONPATH", "$.mode.boost", response)
+
+        var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
+        var valveNumber = Float::parseFloat(String::format("%s", valve))
+
+        thermostat_wz.postUpdate(temperatureNumber)
+        thermostat_wz_valve.postUpdate(valveNumber)
+        thermostat_wz_mode.postUpdate(mode_auto)
+        thermostat_wz_boost.postUpdate(mode_boost)
+      }
+    } finally {
+      lock.unlock()
+    }
+  end
+```
+
+3. Without Rules
+
+3.1. Item
+
+/etc/openhab2/items/thermostat.items
 
 ```
 Number thermostat_wz "Thermostat Wohnzimmer [%.1f °C]" <temperature> { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&temperature=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:600000:JSONPATH($.temperature)]" }
@@ -127,7 +210,7 @@ Switch thermostat_wz_boost "Thermostat Boost [%s]" { http=">[*:GET:http://localh
 Number thermostat_wz_valve "Thermostat Ventil [%.1f]"  { http="<[thermostatWohnzimmer:600000:JSONPATH($.valve)]"}
 ```
 
-3. HTTP-config 
+3.2. HTTP-config 
 
 /etc/openhab2/services/http.cfg
 
@@ -135,6 +218,7 @@ Number thermostat_wz_valve "Thermostat Ventil [%.1f]"  { http="<[thermostatWohnz
 thermostatWohnzimmer.url=http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69{Authorization=Basic SECRET}
 thermostatWohnzimmer.updateInterval=120000
 ```
+
 
 4. Sitemap 
 
@@ -151,6 +235,9 @@ sitemap default label="SmartHome"
 
 }
 ```
+
+
+
 
 Below is the @Heckie75's original README
 
