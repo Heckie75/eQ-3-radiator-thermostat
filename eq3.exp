@@ -683,7 +683,7 @@ proc printTimer {day} {
   }
   for {set event 1} {$event <= 7} {incr event} {
     set key "[lindex $day 0]_[lindex $event 0]"
-    append out "\t[lindex $DAYS $day], $thermostat("timer_start_$key") - $thermostat("timer_end_$key"):\t$thermostat("timer_temperature_$key")°C\n"
+    append out "\t$thermostat("timer_start_$key") - $thermostat("timer_end_$key"):\t$thermostat("timer_temperature_$key")°C\n"
    if {"24:00" == "$thermostat("timer_end_$key")"} {
       break
     }
