@@ -691,6 +691,38 @@ proc printTimer {day} {
   return $out
 }
 
+proc dumpTimer {day} {
+  global DAYS
+  global thermostat
+
+  set out "timer "
+  append out [string tolower [lindex $DAYS $day]]
+  append out " "
+  for {set event 1} {$event <= 7} {incr event} {
+    set key "[lindex $day 0]_[lindex $event 0]"
+    if {"00:00" == "$thermostat("timer_start_$key")"} {
+      append out "$thermostat("timer_temperature_$key") "
+      continue
+    }
+    if {"24:00" == "$thermostat("timer_end_$key")"} {
+      append out "$thermostat("timer_start_$key")"
+      break
+    }
+    append out "$thermostat("timer_start_$key") $thermostat("timer_temperature_$key") "
+  }
+
+  append out "\n"
+  return $out
+}
+
+proc dumpTimers {} {
+  set out ""
+  for {set day 0} {$day < 7} {incr day} {
+    append out [dumpTimer $day]
+  }
+  return $out
+}
+
 proc printTimers {} {
   global DAYS
 
@@ -1032,7 +1064,7 @@ proc doCommand {} {
     }
     ^timers$ {
       init $INIT(timer)
-      puts [printTimers]
+      puts [dumpTimers]
     }
     ^timer.* {
       set params [lindex $c 1]
