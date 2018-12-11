@@ -30,7 +30,8 @@ Temperature:
  off                                            - Sets thermostat to permanent off (4.5°C)
 
 Timers:
- timers                                         - Reads all timers
+ timers                                         - Reads all timers and prints them human friendly
+ timer-settings                                 - Reads all timers and prints them ready for re-configuration
  timer <day>                                    - Reads timer for given day
  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
                                                   day:  mon, tue, wed, thu, fri, sat, sun, work, weekend, everyday, today, tomorrow

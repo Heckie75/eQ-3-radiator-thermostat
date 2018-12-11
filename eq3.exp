@@ -71,7 +71,8 @@ set HELP(boost) "\
 set HELP(boost_off) "\
   boost off                                      - Deactivates boost mode"
 set HELP(timer) "\
-  timers                                         - Reads all timers\n\
+  timers                                         - Reads all timers and prints them human friendly\n\
+  timer-settings                                 - Reads all timers and prints them ready for re-configuration\n\
   timer <day>                                    - Reads timer for given day\n\
   timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time\n\
 \                                                 day:  mon, tue, wed, thu, fri, sat, sun, work, weekend, everyday, today, tomorrow\n\
@@ -1062,9 +1063,13 @@ proc doCommand {} {
         setAwayMode [lindex $c 1] [lindex $c 2]
       }
     }
-    ^timers$ {
+    ^timer-settings$ {
       init $INIT(timer)
       puts [dumpTimers]
+    }
+    ^timers$ {
+      init $INIT(timer)
+      puts [printTimers]
     }
     ^timer.* {
       set params [lindex $c 1]
