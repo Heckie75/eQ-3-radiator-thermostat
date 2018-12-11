@@ -942,12 +942,12 @@ proc parseSerial {} {
   }
   set thermostat(serial) $serial
 
-#  set pin ""
-#  append pin [expr ( [ascii $serial 3]       ^  [ascii $serial 7])       % 10]
-#  append pin [expr ( [ascii $serial 4]       ^  [ascii $serial 8])       % 10]
-#  append pin [expr ( [ascii $serial 5]       ^  [ascii $serial 9])       % 10]
-#  append pin [expr (([ascii $serial 6] - 48) ^ ([ascii $serial 0] - 65)) % 10]
-#  set thermostat(pin) $pin  
+  set pin ""
+  append pin [expr ( [ascii $serial 3]       ^  [ascii $serial 7])       % 10]
+  append pin [expr ( [ascii $serial 4]       ^  [ascii $serial 8])       % 10]
+  append pin [expr ( [ascii $serial 5]       ^  [ascii $serial 9])       % 10]
+  append pin [expr (([ascii $serial 6] - 48) ^ ([ascii $serial 0] - 65)) % 10]
+  set thermostat(pin) $pin  
 
 }
 
