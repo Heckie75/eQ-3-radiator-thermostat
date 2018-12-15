@@ -162,6 +162,7 @@ set thermostat(name)           ""
 set thermostat(vendor)         ""
 set thermostat(last_request)   ""
 set thermostat(serial)         ""
+set thermostat(firmware)       ""
 set thermostat(pin)            ""
 set thermostat(status)         ""
 set thermostat(mode)           ""
@@ -968,6 +969,9 @@ proc parseSerial {} {
     exit -1
   }
 
+  set firmware [expr ([hexToDecimal [lindex $raw_serial 1]] / 100.0)]
+  set thermostat(firmware) $firmware
+
   set serial ""
   for {set i 4} {$i < 14} {incr i} {
     set v [hexToDecimal [lindex $raw_serial $i]]
@@ -989,6 +993,7 @@ proc printSerial {} {
 
   parseSerial
   puts "\nSerial no.:\t\t$thermostat(serial)"
+  puts "Firmware:\t\t$thermostat(firmware)"
   puts "Pair:\t\t\t$thermostat(pin)"
   puts ""
 }
