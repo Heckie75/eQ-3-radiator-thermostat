@@ -1,7 +1,7 @@
 <?php
 // TODO handle errors: send error response
 // TODO logging
-$script = "/home/pi/eQ-3-radiator-thermostat/eq3.exp ";
+$script = "/var/www/openhab2/eqiva/eq3.exp ";
 $mac_regex = "/^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/";
 
 $modes = array("ON" => "auto", "OFF" => "manual");
@@ -46,7 +46,9 @@ if(strcasecmp($_SERVER['REQUEST_METHOD'], 'POST') == 0){
   $request_parameters = $_GET;
 }
 
-$mac = str_replace("-", ":", $request_parameters['mac']);
+if (isset($request_parameters['mac'])) {
+  $mac = str_replace("-", ":", $request_parameters['mac']);
+}
 if (isset($request_parameters['temperature'])) {
   $temperature = str_replace(",", ".", $request_parameters['temperature']);
 }
@@ -57,6 +59,7 @@ if (isset($request_parameters['boost'])) {
   $boost = $request_parameters['boost'];
 }
 
+$response = "error";
 if (isset($mac)) {
   if (preg_match($mac_regex, $mac)) {
     // temperature
@@ -65,7 +68,7 @@ if (isset($mac)) {
       $result = setTemperature($mac, $temperature);
     }
     // mode
-    if (in_array($mode,  array_keys($modes))) {
+    if (isset($mode) &&  in_array($mode,  array_keys($modes))) {
       $result = setMode($mac, $modes[$mode]);
     }
     // boost
@@ -77,7 +80,6 @@ if (isset($mac)) {
         $result = setBoost($mac, 1);
       }
     }
-
     $response = readShortStatus($mac);
   }
 }
