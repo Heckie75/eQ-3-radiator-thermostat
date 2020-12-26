@@ -50,21 +50,26 @@ char-write-req 0411 03110208151f05
                + request via handle 411
 ```
 
-Data will be returned via notification handle
-```
-Notification handle = 0x0421 value: 02 01 00 00 04 2a
-```
+Data will be returned via notification handle. Newer devices (firmwares) always return all details of the device. Older devices only return bytes 7 to 10 if vacation mode is active. Bytes 11 to 15 are not available at all.
 
-*Note:*
-Earlier I have written that it is good enough just to send the request w/o date and time like this:
 ```
-char-write-req 0411 03
+Notification handle = 0x0421 value: 02 01 09 50 04 1e 00 00 00 00 18 03 2a 22 07
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  |  + temperature offset, calculate (value -  7) / 2
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  + eco temperature, calculate value / 2
+                                    |  |  |  |  |  |  |  |  |  |  |  |  + comfort temperature, calculate value / 2
+                                    |  |  |  |  |  |  |  |  |  |  |  + open windows interval, calculate value * 5 minutes
+                                    |  |  |  |  |  |  |  |  |  |  + temperature in open windows mode, calculate value / 2
+                                    |  |  |  |  |  |  |  |  |  + if vacation mode: time, calculate value * 30 minutes
+                                    |  |  |  |  |  |  |  |  + if vacation mode: month (January = 0, February = 1, etc.)
+                                    |  |  |  |  |  |  |  + if vacation mode: year, callculate value + 2000
+                                    |  |  |  |  |  |  + if vacation mode: day in month
+                                    |  |  |  |  |  + target temperature, calculate value / 2
+                                    |  |  |  |  + (unknown)
+                                    |  |  |  + Valve in percent 
+                                    |  |  + Mode, see bits in API for details
+                                    |  + 0x01 if this notification is device status notification
+                                    + Always 0x02 if this notification is device status notification
 ```
-
-But these days I got the feedback that this way corrupts the internal clock so that timers and vacation 
-mode do not work anymore as long as the clock has been set explicitly again. 
-I have also dumped the bluetooth communication of the official app on Android devices. 
-The app also sends date and time each time it requests the status. So we should do it as well.
 
 Note: It does not seem to be possible to set the "daylight summertime" (dst) via bluetooth. 
 
@@ -90,28 +95,7 @@ Byte 6 represents the target temperature. It has to be calculated.
 temp = dec(value of byte 6) / 2.0
 ```  
 
-### Vacation data, open window, comfort and eco temperature
-
-Newer devices (firmware) seem to return more details in terms of configuration. Older devices only return bytes 7 to 10 if vacation mode is active.
-
-```
-Notification handle = 0x0421 value: 02 01 09 50 04 1e 00 00 00 00 18 03 2a 22 07
-                                    |  |  |  |  |  |  |  |  |  |  |  |  |  |  + (unknown)
-                                    |  |  |  |  |  |  |  |  |  |  |  |  |  + eco temperature (devid value by 2)
-                                    |  |  |  |  |  |  |  |  |  |  |  |  + comfort temperature (devid value by 2)
-                                    |  |  |  |  |  |  |  |  |  |  |  + open windows interval in 5 minute steps 
-                                    |  |  |  |  |  |  |  |  |  |  + temperature in open windows mode (devide value by 2) 
-                                    |  |  |  |  |  |  |  |  |  + if vacation mode: time in 30 minutes steps
-                                    |  |  |  |  |  |  |  |  + if vacation mode: month (January = 0, February = 1, etc.)
-                                    |  |  |  |  |  |  |  + if vacation mode: year (add 2000)
-                                    |  |  |  |  |  |  + if vacation mode: day in month
-                                    |  |  |  |  |  + target temperature (devide value by 2)
-                                    |  |  |  |  + (unknown)
-                                    |  |  |  + Valve in percent 
-                                    |  |  + Mode as already described in API
-                                    |  + 0x01 if this notification is device status notification
-                                    + Always 0x02 if this notification is device status notification
-```
+### Vacation data (bytes 7 - 10)
 
 Bytes related to vacation mode:
 - Byte 8: Vacation year (yy) in hex
@@ -122,13 +106,6 @@ Bytes related to vacation mode:
 hh = int(dec(value of byte 10) / 2)
 mm = dec(value of byte 10) modulo 2 * 30
 ```
-
-
-
-
-
-
-
 
 **Example 1 - auto mode**
 ```
