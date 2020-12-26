@@ -90,8 +90,30 @@ Byte 6 represents the target temperature. It has to be calculated.
 temp = dec(value of byte 6) / 2.0
 ```  
 
-### Vacation data
-The bytes 7 to 9 are only returned on case that vacation mode is active. 
+### Vacation data, open window, comfort and eco temperature
+
+Newer devices (firmware) seem to return more details in terms of configuration. Older devices only return bytes 7 to 10 if vacation mode is active.
+
+```
+Notification handle = 0x0421 value: 02 01 09 50 04 1e 00 00 00 00 18 03 2a 22 07
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  |  + (unknown)
+                                    |  |  |  |  |  |  |  |  |  |  |  |  |  + eco temperature (devid value by 2)
+                                    |  |  |  |  |  |  |  |  |  |  |  |  + comfort temperature (devid value by 2)
+                                    |  |  |  |  |  |  |  |  |  |  |  + open windows interval in 5 minute steps 
+                                    |  |  |  |  |  |  |  |  |  |  + temperature in open windows mode (devide value by 2) 
+                                    |  |  |  |  |  |  |  |  |  + if vacation mode: time in 30 minutes steps
+                                    |  |  |  |  |  |  |  |  + if vacation mode: month (January = 0, February = 1, etc.)
+                                    |  |  |  |  |  |  |  + if vacation mode: year (add 2000)
+                                    |  |  |  |  |  |  + if vacation mode: day in month
+                                    |  |  |  |  |  + target temperature (devide value by 2)
+                                    |  |  |  |  + (unknown)
+                                    |  |  |  + Valve in percent 
+                                    |  |  + Mode as already described in API
+                                    |  + 0x01 if this notification is device status notification
+                                    + Always 0x02 if this notification is device status notification
+```
+
+Bytes related to vacation mode:
 - Byte 8: Vacation year (yy) in hex
 - Byte 9: Vacation month (mm) in hex
 - Byte 7: Vacation day in month (dd) in hex
@@ -100,6 +122,13 @@ The bytes 7 to 9 are only returned on case that vacation mode is active.
 hh = int(dec(value of byte 10) / 2)
 mm = dec(value of byte 10) modulo 2 * 30
 ```
+
+
+
+
+
+
+
 
 **Example 1 - auto mode**
 ```
