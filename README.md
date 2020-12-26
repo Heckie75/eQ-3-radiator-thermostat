@@ -98,8 +98,7 @@ It is the one related to the device CC-RT-BLE.
 
 2. Pair bluetooth
 
-Actually I am not 100% sure, but it seems that the thermostat must be explicitly paired (maybe only newer versions). Therefore you have to press the button on the termostat
-and start the pairing procedure. It depends on your linux distribution how devices must be paired there. The pin seems not to be required for pairing.
+Paring is not required. However after inserting battery you have to disable and re-enable bluetooth in menu. Otherwise device is not found via bluetooth. After that you can immediately control it via BT.
 
 
 ## Examples
