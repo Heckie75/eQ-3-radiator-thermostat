@@ -157,19 +157,24 @@ set MODE(32)                  "locked"
 set MODE(64)                  "unknown"
 set MODE(128)                 "low battery"
 
-set thermostat(mac)            ""
-set thermostat(name)           ""
-set thermostat(vendor)         ""
-set thermostat(last_request)   ""
-set thermostat(serial)         ""
-set thermostat(firmware)       ""
-set thermostat(pin)            ""
-set thermostat(status)         ""
-set thermostat(mode)           ""
-set thermostat(valve)          ""
-set thermostat(temperature)    ""
-set thermostat(vacation_date)  ""
-set thermostat(vacation_time)  ""
+set thermostat(mac)                 ""
+set thermostat(name)                ""
+set thermostat(vendor)              ""
+set thermostat(last_request)        ""
+set thermostat(serial)              ""
+set thermostat(firmware)            ""
+set thermostat(pin)                 ""
+set thermostat(status)              ""
+set thermostat(mode)                0
+set thermostat(valve)               0.0
+set thermostat(temperature)         0.0
+set thermostat(vacation_date)       ""
+set thermostat(vacation_time)       ""
+set thermostat(comfort_temperature) 0.0
+set thermostat(eco_temperature)     0.0
+set thermostat(window_temperature)  0.0
+set thermostat(window_time)         ""
+set thermostat(offset_temperature)  0.0
 
 set DAYS                    "Sat Sun Mon Tue Wed Thu Fri Weekend Work Everyday"
 
@@ -534,6 +539,21 @@ proc parseMode {raw_status} {
     set thermostat(vacation_date) ""
     set thermostat(vacation_time) ""
   }
+
+  if {[llength $raw_status] >= 15} {
+    set thermostat(window_temperature) [hexToTemperature [lindex $raw_status 10]]
+    set thermostat(window_time) [minutesToTime [hexToDecimal [lindex $raw_status 11]] 5]
+    set thermostat(comfort_temperature) [hexToTemperature [lindex $raw_status 12]]
+    set thermostat(eco_temperature) [hexToTemperature [lindex $raw_status 13]]
+    set thermostat(offset_temperature) [expr [hexToTemperature [lindex $raw_status 14]] - 3.5]
+  } else {
+    set thermostat(window_temperature) 0
+    set thermostat(window_time) ""
+    set thermostat(comfort_temperature) 0
+    set thermostat(eco_temperature) 0
+    set thermostat(offset_temperature) 0
+  }
+
 }
 
 proc readTimer {day} {
@@ -615,6 +635,13 @@ proc toJson {} {
   } else {
     append out "  \"vacation\" : null,\n"
   }
+  if {[llength $thermostat(status)] >= 15} {
+    append out "  \"comfort_temperature\" : $thermostat(comfort_temperature),\n"
+    append out "  \"eco_temperature\" : $thermostat(eco_temperature),\n"
+    append out "  \"open_window_temperature\" : $thermostat(window_temperature),\n"
+    append out "  \"open_window_time\" : \"$thermostat(window_time)\",\n"
+    append out "  \"offset_temperature\" : $thermostat(offset_temperature),\n"
+  }
   append out "  \"timers\" : \{\n"
   for {set day 0} {$day < 9} {incr day} {
     append out "    \"[lindex $DAYS $day]\" : \[\n"
@@ -663,6 +690,15 @@ proc printStatus {} {
   } else {
     append out "Vacation mode:\t\t\toff\n"
   }
+
+  if {[llength $thermostat(status)] >= 15} {
+    append out "\nComfort temperature:\t\t$thermostat(comfort_temperature)°C\n"
+    append out "Eco temperature:\t\t$thermostat(eco_temperature)°C\n"
+    append out "\nOpen window temperature:\t$thermostat(window_temperature)°C\n"
+    append out "Open window time:\t\t$thermostat(window_time)\n"
+    append out "\nOffset temperature:\t\t$thermostat(offset_temperature)°C\n"
+  }
+
   if {[log_user] != 0} {
     append out "\nLast request (0x$HANDLES(request)):\t\t$thermostat(last_request)\n"
   }
@@ -757,18 +793,18 @@ proc syncTime {} {
 
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded after sync request in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
 
   parseMode $raw_status
   puts "\n[printStatus]"
-   
+
 }
 
 proc setVacationMode {date daytime temp} {
   global REQUESTS
   global timeout
-  
+
   set part [split $date "-"]
   scan [lindex $part 0] %d year
   scan [lindex $part 1] %d month
@@ -781,10 +817,10 @@ proc setVacationMode {date daytime temp} {
 
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded after vacation mode request in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
 
-  puts "\nVacation mode:\t\t\t$date $daytime $temp°C"
+  puts "\nVacation mode successfully set"
   parseMode $raw_status
   puts "\n[printStatus]"
 }
@@ -842,11 +878,10 @@ proc setComfortEco {comfort eco} {
 
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded to after comfort/eco request in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
 
-  puts "\nComfort temperature:\t\t$comfort°C"
-  puts "Eco temperature:\t\t$eco°C"
+  puts "\nComfort and eco temperature successfully set"
 
   parseMode $raw_status
   puts "\n[printStatus]"
@@ -863,8 +898,7 @@ proc setWindowMode {temp time} {
 
   set raw_status [writeRequest $REQUESTS(setWindowOpen) "[tempToHex $temp][decimalToHex $period]"]
 
-  puts "\nWindow open temperature:\t$temp°C"
-  puts "Window open time:\t\t$time"
+  puts "\nWindow open temperature and time successfully set"
 
   parseMode $raw_status
   puts "\n[printStatus]"
@@ -878,10 +912,10 @@ proc setOffset {temp} {
 
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded after offset request in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
 
-  puts "\nOffset temperature:\t\t$temp°C"
+  puts "\nOffset temperature successfully set"
 
   parseMode $raw_status
   puts "\n[printStatus]"
@@ -905,12 +939,12 @@ proc setMode {mode} {
       set raw_status [writeRequest $REQUESTS(stopBoost) ""]
     }
   }
-  
+
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded after mode request in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
-  
+
   parseMode $raw_status
   puts "\n[printStatus]"
 }
@@ -934,7 +968,7 @@ proc setTemperature {temp} {
 
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded after temperature request in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
 
   parseMode $raw_status
@@ -986,7 +1020,7 @@ proc parseSerial {} {
   append pin [expr ( [ascii $serial 4]       ^  [ascii $serial 8])       % 10]
   append pin [expr ( [ascii $serial 5]       ^  [ascii $serial 9])       % 10]
   append pin [expr (([ascii $serial 6] - 48) ^ ([ascii $serial 0] - 65)) % 10]
-  set thermostat(pin) $pin  
+  set thermostat(pin) $pin
 
 }
 
@@ -1005,12 +1039,12 @@ proc otherRequest {command} {
   global timeout
 
   set raw_status [writeRequest $REQUESTS($command) ""]
-  
+
   if {$raw_status == ""} {
     puts "ERROR: Thermostat hasn't responded in time ($timeout sec.)"
-    exit -1  
+    exit -1
   }
-  
+
   parseMode $raw_status
   puts "\n[printStatus]"
 }
