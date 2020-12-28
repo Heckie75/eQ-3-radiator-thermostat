@@ -6,7 +6,7 @@ This script allows to control the bluetooth radiator thermostat with the Raspber
 
 
 ```
-$ ./eq3.exp 00:1A:22:07:FD:03 
+$ ./eq3.exp 00:1A:22:07:FD:03
 
 Full-featured CLI for radiator thermostat eQ-3 CC-RT-BLE
 
@@ -35,13 +35,13 @@ Timers:
  timer <day>                                    - Reads timer for given day
  timer <day> <base> <hh:mm> <temp> <hh:mm> ...  - Sets timer for given day and up to 7 events with temperature and time
                                                   day:  mon, tue, wed, thu, fri, sat, sun, work, weekend, everyday, today, tomorrow
-                                                  base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
-                                                  target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  base temperature before first and after last schedule: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
+                                                  target temperature 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
                                                   hh:mm: time where minutes must be in intervals of 10 minutes, e.g. 23:40
  vacation <yy-mm-dd> <hh:mm> <temp>             - Activates vacation mode until date and time and temperature in °C
                                                   yy-mm-dd: until date, e.g. 17-03-31
                                                   hh:mm: until time where minutes must be 00 or 30, e.g. 23:30
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  vacation <hh> <temp>                           - Activates vacation mode for given period in hours and temperature in °C
                                                   hh: Period in hours
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
@@ -50,7 +50,7 @@ Configuration:
  comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
  window <temp> <hh:mm>                          - Sets temperature in °C and period for open window mode
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
                                                   hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05
  offset <offset>                                - Sets the offset temperature in °C
                                                   offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5
@@ -96,7 +96,39 @@ LE Scan ...
 
 It is the one related to the device CC-RT-BLE.
 
-2. Pair bluetooth
+
+### 2. Aliases
+For convenience reasons I recommend to use aliases. Instead of entering the bluetooth mac address each time you want to run the script, you can call the script by using meaningful names.
+
+The script tries to read a file called `.known_eqivas` which must be located in your home folder. It is a text file with two columns:
+
+1. MAC address
+2. Meaningful name
+
+My `.known_eqivas` looks as follows:
+```
+$ cat ~/.known_eqivas
+00:1A:22:0A:91:CF Wohnzimmer
+00:1A:22:0C:19:60 Küche
+```
+
+This enables you to call the script like this
+```
+$ ./eq3.exp Wohnzimmer sync
+```
+
+instead of
+```
+$ ./eq3.exp 00:1A:22:0A:91:CF sync
+```
+
+**Note**:
+You don't even have to write the whole alias. This works as well:
+```
+$ ./eq3.exp W sync
+```
+
+3. Pair bluetooth
 
 Paring is not required. However after inserting battery you have to disable and re-enable bluetooth in menu. Otherwise device is not found via bluetooth. After that you can immediately control it via BT.
 
@@ -110,7 +142,7 @@ $ ./eq3.exp hci0 00:1A:22:07:FD:03 sync
 
 Temperature:			10.5°C
 Valve:				0%
-Mode:				manual 
+Mode:				manual
 Vacation mode:			off
 ```
 
@@ -124,7 +156,7 @@ $ ./eq3.exp 00:1A:22:07:FD:03 status
 
 Temperature:			10.5°C
 Valve:				0%
-Mode:				manual 
+Mode:				manual
 Vacation mode:			off
 
 
@@ -184,7 +216,7 @@ Window open time:           2:00
 
 Temperature:                22.0°C
 Valve:                      0%
-Mode:                       auto 
+Mode:                       auto
 Vacation mode:              off
 ```
 
@@ -263,7 +295,7 @@ Mode:                   manual
 Vacation mode:          off
 ```
 
-### Start vacation mode 
+### Start vacation mode
 ```
 $ ./eq3.exp 00:1A:22:07:FD:03 vacation 17-03-31 21:30 14.5
 
@@ -271,7 +303,7 @@ Vacation mode:          17-03-31 21:30 14.5°C
 
 Temperature:            14.5°C
 Valve:                  0%
-Mode:                   auto vacation 
+Mode:                   auto vacation
 Vacation mode:          on
 Vacation until:         2017-03-31 21:30
 
@@ -281,7 +313,7 @@ Vacation mode:          17-02-14 21:30 19°C
 
 Temperature:            19.0°C
 Valve:                  0%
-Mode:                   auto vacation 
+Mode:                   auto vacation
 Vacation mode:          on
 Vacation until:         2017-02-14 21:30
 ```
@@ -294,7 +326,7 @@ Timer set: wed 19 03:00 23 06:00 19 09:00 23 12:00 19 15:00 23 18:00 24 24:00
 
 $ ./eq3.exp 00:1A:22:07:FD:03 timer wed
 
-Timer for Wed (0x0411 2004):    21 04 26 12 2e 24 26 36 2e 48 26 5a 2e 6c 30 90 
+Timer for Wed (0x0411 2004):    21 04 26 12 2e 24 26 36 2e 48 26 5a 2e 6c 30 90
     Wed, 00:00 - 03:00: 19.0°C
     Wed, 03:00 - 06:00: 23.0°C
     Wed, 06:00 - 09:00: 19.0°C
@@ -312,7 +344,7 @@ Offset temperature:     1.0°C
 
 Temperature:            22.0°C
 Valve:                  0%
-Mode:                   auto 
+Mode:                   auto
 Vacation mode:          off
 ```
 

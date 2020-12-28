@@ -2,11 +2,11 @@
 #
 # Shell script in order to control eQ-3 radiator thermostat
 #
-# Version: 2017-11-04
+# Version: 2020-12-28
 #
 # MIT License
 #
-# Copyright (c) 2017 Martin Heckenbach
+# Copyright (c) 2017-2020 Martin Heckenbach
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 log_user 0
 
 set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3 CC-RT-BLE\n"
-set HELP(usage) "Usage: \[<hciX>\] <mac> <command> <parameters...>\n"
+set HELP(usage) "Usage: \[<hciX>\] <mac/alias> <command> <parameters...>\n"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
 set HELP(window) "\
@@ -103,6 +103,10 @@ set timeout                     10
 
 set DELAY                       100
 
+set MAC_PATTERN                 "\[0-9A-F]{2}:\[0-9A-F]{2}:\[0-9A-F]{2}:\[0-9A-F]{2}:\[0-9A-F]{2}:\[0-9A-F]{2}"
+set KNOWN_EQIVAS_FILE           "~/.known_eqivas"
+array set known_eqivas          {}
+
 set INIT(device)                1
 set INIT(mode)                  2
 set INIT(timer)                 4
@@ -160,6 +164,7 @@ set MODE(128)                 "low battery"
 
 set thermostat(mac)                 ""
 set thermostat(name)                ""
+set thermostat(alias)               ""
 set thermostat(vendor)              ""
 set thermostat(last_request)        ""
 set thermostat(serial)              ""
@@ -225,7 +230,44 @@ proc help {} {
   puts ""
 }
 
+proc readKnownEqivas {} {
+  global MAC_PATTERN
+  global KNOWN_EQIVAS_FILE
+  global known_eqivas
+
+  if {[file exists "$KNOWN_EQIVAS_FILE"] == 0} {
+    return
+  }
+
+  set fp [open "$KNOWN_EQIVAS_FILE" r]
+  fconfigure $fp -buffering line
+
+  gets $fp data
+  while {$data != ""} {
+    regexp "($MAC_PATTERN) (\.+)" $data matched _mac _name
+
+    set known_eqivas($_mac) $_name
+    gets $fp data
+  }
+
+  close $fp
+}
+
+proc lookupKnownEqivaByName {pattern} {
+  global known_eqivas
+  global thermostat
+  foreach _mac [lsort [array names known_eqivas]] {
+    if { [string first "$pattern" $known_eqivas($_mac) ] != -1 } {
+      set thermostat(alias) $known_eqivas($_mac)
+      return $_mac
+    }
+  }
+  return ""
+}
+
 proc parseArgv {argv} {
+  global MAC_PATTERN
+  global KNOWN_EQIVAS_FILE
   global mac
   global hci
   global cmd
@@ -240,8 +282,21 @@ proc parseArgv {argv} {
     set argv [lreplace $argv 0 0]
   }
 
-  set mac [lindex $argv 0]
+  set id [lindex $argv 0]
   set argv [lreplace $argv 0 0]
+
+  set is_mac [regexp "$MAC_PATTERN" $id]
+  if {$is_mac == 1 } {
+    set mac $id
+  } else {
+    readKnownEqivas
+    set mac [lookupKnownEqivaByName $id]
+  }
+
+  if { $mac == "" } {
+    puts "Device \"$id\" isn't known yet. Please check $KNOWN_EQIVAS_FILE file before using alias."
+    exit
+  }
 
   set cmd [join $argv " "]
 }
@@ -599,6 +654,10 @@ proc printDevice {} {
   } else {
     append out "Device name (0x$HANDLES(name)):\t\t$thermostat(name)\n"
     append out "Device vendor (0x$HANDLES(vendor)):\t\t$thermostat(vendor)\n"
+  }
+
+  if {$thermostat(alias) != ""} {
+    append out "Alias:\t\t\t\t$thermostat(alias)"
   }
 
   append out "\n"
