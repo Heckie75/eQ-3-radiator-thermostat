@@ -30,7 +30,7 @@
 log_user 0
 
 set HELP(about) "\nFull-featured CLI for radiator thermostat eQ-3 CC-RT-BLE\n"
-set HELP(usage) "Usage: <mac> <command> <parameters...>\n"
+set HELP(usage) "Usage: \[<hciX>\] <mac> <command> <parameters...>\n"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
 set HELP(window) "\
@@ -96,6 +96,7 @@ set HELP(reset) "\
   reset                                          - Factory reset"
 
 set mac                         ""
+set hci                         ""
 set cmd                         ""
 
 set timeout                     10
@@ -226,6 +227,7 @@ proc help {} {
 
 proc parseArgv {argv} {
   global mac
+  global hci
   global cmd
 
   if {[llength $argv] < 2} {
@@ -233,15 +235,15 @@ proc parseArgv {argv} {
     exit
   }
 
-  set mac [lindex $argv 0]
-
-  set cmd ""
-  for {set i 1} {$i < [llength $argv]} {incr i} {
-    if {$i > 1} {
-      append cmd " "
-    }
-    append cmd [lindex $argv $i]
+  if {[string match "hci?" [lindex $argv 0]]} {
+    set hci [lindex $argv 0]
+    set argv [lreplace $argv 0 0]
   }
+
+  set mac [lindex $argv 0]
+  set argv [lreplace $argv 0 0]
+
+  set cmd [join $argv " "]
 }
 
 proc checkArgs {argv req command reg} {
@@ -1186,7 +1188,11 @@ proc doCommand {} {
 }
 
 parseArgv $argv
-spawn -noecho /usr/bin/gatttool -I
+if { $hci != "" } {
+  spawn -noecho /usr/bin/gatttool -I -i $hci
+} else {
+  spawn -noecho /usr/bin/gatttool -I
+}
 doCommand
 disconnect
 close -i $spawn_id

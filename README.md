@@ -10,7 +10,7 @@ $ ./eq3.exp 00:1A:22:07:FD:03
 
 Full-featured CLI for radiator thermostat eQ-3 CC-RT-BLE
 
-Usage: <mac> <command> <parameters...>
+Usage: [<hciX>] <mac> <command> <parameters...>
 
 Sync:
  sync                                           - Syncs time and prints target temperature and mode
@@ -106,13 +106,15 @@ Paring is not required. However after inserting battery you have to disable and 
 ### Sync time from PC to thermostat
 
 ```
-$ ./eq3.exp 00:1A:22:07:FD:03 sync
+$ ./eq3.exp hci0 00:1A:22:07:FD:03 sync
 
 Temperature:			10.5°C
 Valve:				0%
 Mode:				manual 
 Vacation mode:			off
 ```
+
+**Note**: Parameter *hci0* is optional. Set this only if you want to use a specific bluetooth adapter.
 
 ### Dump status
 

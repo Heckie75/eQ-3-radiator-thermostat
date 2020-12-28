@@ -50,7 +50,7 @@ char-write-req 0411 03110208151f05
                + request via handle 411
 ```
 
-Data will be returned via notification handle. Newer devices (firmwares) always return all details of the device. Older devices only return bytes 7 to 10 if vacation mode is active. Bytes 11 to 15 are not available at all.
+Data will be returned via notification handle. Newer devices (firmwares > 1.1) always return all details of the device. Older devices only return bytes 7 to 10 if vacation mode is active. Bytes 11 to 15 are not available at all.
 
 ```
 Notification handle = 0x0421 value: 02 01 09 50 04 1e 00 00 00 00 18 03 2a 22 07
@@ -71,7 +71,7 @@ Notification handle = 0x0421 value: 02 01 09 50 04 1e 00 00 00 00 18 03 2a 22 07
                                     + Always 0x02 if this notification is device status notification
 ```
 
-Note: It does not seem to be possible to set the "daylight summertime" (dst) via bluetooth. 
+**Note**: It does not seem to be possible to set the "daylight summertime" (dst) via bluetooth. 
 
 ### Modes (Byte 3)
 The thermostat has the following modes which can be active at one and the same time:
@@ -338,7 +338,7 @@ Notification handle = 0x0421 value: 02 01 01 50 04 2c
                                           + mode, now back to "normal"
 ```
 
-## Timers
+## Timer
 The thermostat has at least one time plan per day. In other forums you can read that there are even more timer programs possible but I haven't double-checked it. 
 From my point of view it is good enough to have the possibility to have a schedule plan for each day of the week. 
 
