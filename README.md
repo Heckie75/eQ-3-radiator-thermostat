@@ -10,7 +10,7 @@ $ ./eq3.exp 00:1A:22:07:FD:03
 
 Full-featured CLI for radiator thermostat eQ-3 CC-RT-BLE
 
-Usage: [<hciX>] <mac> <command> <parameters...>
+Usage: [<hciX>] <mac/alias> <command> <parameters...>
 
 Sync:
  sync                                           - Syncs time and prints target temperature and mode
@@ -68,7 +68,7 @@ Others:
 
 ## Initial setup
 
-0. Check pre-conditions
+### Check pre-conditions
 
 Install `expect`:
 ```
@@ -84,7 +84,7 @@ Usage:
 
 ```
 
-1. Discover the MAC address of your thermostat
+### 1. Discover the MAC address of your thermostat
 
 ```
 $ sudo hcitool lescan
@@ -128,7 +128,7 @@ You don't even have to write the whole alias. This works as well:
 $ ./eq3.exp W sync
 ```
 
-3. Pair bluetooth
+### 3. Pair bluetooth
 
 Paring is not required. However after inserting battery you have to disable and re-enable bluetooth in menu. Otherwise device is not found via bluetooth. After that you can immediately control it via BT.
 
