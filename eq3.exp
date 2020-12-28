@@ -2,7 +2,7 @@
 #
 # Shell script in order to control eQ-3 radiator thermostat
 #
-# Version: 2020-12-28
+# Version: 2020-12-29
 #
 # MIT License
 #
@@ -244,7 +244,7 @@ proc readKnownEqivas {} {
 
   gets $fp data
   while {$data != ""} {
-    regexp "($MAC_PATTERN) (\.+)" $data matched _mac _name
+    regexp -nocase "($MAC_PATTERN) (\.+)" $data matched _mac _name
 
     set known_eqivas($_mac) $_name
     gets $fp data
@@ -285,7 +285,7 @@ proc parseArgv {argv} {
   set id [lindex $argv 0]
   set argv [lreplace $argv 0 0]
 
-  set is_mac [regexp "$MAC_PATTERN" $id]
+  set is_mac [regexp -nocase "$MAC_PATTERN" $id]
   if {$is_mac == 1 } {
     set mac $id
   } else {
@@ -688,6 +688,9 @@ proc toJson {} {
 
   append out "\{\n"
   append out "  \"mac\" : \"$thermostat(mac)\",\n"
+  if {$thermostat(alias) != ""} {
+    append out "  \"alias\" : \"$thermostat(alias)\",\n"
+  }
   append out "  \"temperature\" : $thermostat(temperature),\n"
   append out "  \"valve\" : $thermostat(valve),\n"
   append out "  \"mode\" : [getModeAsJson],\n"
