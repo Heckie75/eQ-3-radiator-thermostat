@@ -49,9 +49,9 @@ Timers:
 Configuration:
  comforteco <temp_comfort> <temp_eco>           - Sets comfort and eco temperature in °C
                                                   temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
- window <temp> <hh:mm>                          - Sets temperature in °C and period for open window mode
-                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5
-                                                  hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05
+ window <temp> <h:mm>                           - Sets temperature in °C and period for open window mode
+                                                  temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 
+                                                  h:mm: time where minutes in intervals of 5 minutes but max. 1 hour, e.g. 1:00
  offset <offset>                                - Sets the offset temperature in °C
                                                   offset: temperature between -3.5 and 3.5 in intervals of 0.5°C, e.g. 1.5
 

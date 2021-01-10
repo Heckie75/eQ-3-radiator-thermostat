@@ -34,9 +34,9 @@ set HELP(usage) "Usage: \[<hciX>\] <mac/alias> <command> <parameters...>\n"
 set HELP(sync) "\
   sync                                           - Syncs time and prints target temperature and mode"
 set HELP(window) "\
-  window <temp> <hh:mm>                          - Sets temperature in °C and period for open window mode\n\
+  window <temp> <h:mm>                           - Sets temperature in °C and period for open window mode\n\
 \                                                 temp: 5.0 to 29.5 in intervals of 0.5°C, e.g. 19.5 \n\
-\                                                 hh:mm: time where minutes in intervals of 5 minutes, e.g. 02:05"
+\                                                 h:mm: time where minutes in intervals of 5 minutes but max. 1 hour, e.g. 1:00"
 set HELP(auto) "\
   auto                                           - Sets auto mode and deactivates vacation mode if active."
 set HELP(manual) "\
@@ -244,7 +244,7 @@ proc readKnownEqivas {} {
 
   gets $fp data
   while {$data != ""} {
-    regexp -nocase "($MAC_PATTERN) (\.+)" $data matched _mac _name
+    regexp "($MAC_PATTERN) (\.+)" $data matched _mac _name
 
     set known_eqivas($_mac) $_name
     gets $fp data
@@ -959,6 +959,9 @@ proc setWindowMode {temp time} {
   scan [lindex $part 1] %d minutes
 
   set period [expr ($minutes + $hours * 60) / 5]
+  if { $period > 12 } {
+    set period 12
+  }
 
   set raw_status [writeRequest $REQUESTS(setWindowOpen) "[tempToHex $temp][decimalToHex $period]"]
 
@@ -1132,7 +1135,7 @@ proc doCommand {} {
       setComfortEco [lindex $c 1] [lindex $c 2]
     }
     ^window.* {
-      checkArgs $c 2 "window" {^window [0-9]{1,2}\.?[05]? [0-9]{1,2}:[0-9][05]$}
+      checkArgs $c 2 "window" {^window [0-9]{1,2}\.?[05]? [01]:[0-5][05]$}
       init 0
       setWindowMode [lindex $c 1] [lindex $c 2]
     }
