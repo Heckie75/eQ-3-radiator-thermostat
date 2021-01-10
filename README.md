@@ -365,3 +365,15 @@ Valve:                  42%
 Mode:                   manual
 Vacation mode:          off
 ```
+
+## Integration in third-party tools
+
+Over the time this script has been taken and integrated in several projects, e.g.
+
+* Node-RED, see [node-red-contrib-eq3-thermostat](https://flows.nodered.org/node/node-red-contrib-eq3-thermostat)
+* OpenHAB, see [Eqiva Bluetooth Thermostat in openHAB](https://www.boringhome.de/eqiva-thermostat-openhab/) (german manual)
+* Kodi, see [kodi-addon-eq3-thermostat](https://github.com/Heckie75/kodi-addon-eq3-thermostat) 
+
+This is just a selection without any recommendation. 
+
+In addition I've seen discussions about integration in FHEM. There are a few projects that have taken the documentation of the API in order to implement simular scripts by using languages like Python or JavaScript (Node JS).
