@@ -100,7 +100,7 @@ It is the one related to the device CC-RT-BLE.
 ### 2. Aliases
 For convenience reasons I recommend to use aliases. Instead of entering the bluetooth mac address each time you want to run the script, you can call the script by using meaningful names.
 
-The script tries to read a file called `.known_eqivas` which must be located in your home folder. It is a text file with two columns:
+The script tries to read a file called `.known_eqivas` which must be located in your home folder or named in KNOWN_EQUIVAS environment variable. It is a text file with two columns:
 
 1. MAC address
 2. Meaningful name
