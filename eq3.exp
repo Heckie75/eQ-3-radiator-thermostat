@@ -235,6 +235,10 @@ proc readKnownEqivas {} {
   global KNOWN_EQIVAS_FILE
   global known_eqivas
 
+  if {[info exists ::env(KNOWN_EQUIVAS)] == 1} {
+    set KNOWN_EQIVAS_FILE "$::env(KNOWN_EQUIVAS)"
+  }
+
   if {[file exists "$KNOWN_EQIVAS_FILE"] == 0} {
     return
   }
