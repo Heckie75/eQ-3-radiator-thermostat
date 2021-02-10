@@ -1,3 +1,291 @@
+
+# eQ-3-radiator-thermostat for OpenHab2
+
+An extension of @Heckie75 repository. It allows to control the eqiva eQ-3 bluetooth radiator thermostat directly from OpenHab2 whith HTTP or EXEC binding. The OpenHab-Bluethooth binding is not necessary.
+You can also control the thermostat over HTTP with GET or POST requests:
+
+Request (thermostat status):
+```
+http://192.168.1.100/eq3/eq3.php?mac=00-11-42-DD-EE-69
+```
+
+Response (thermostat status):
+```
+{
+  "mac" : "00-11-42-DD-EE-69",
+  "temperature" : 22.0,
+  "valve" : 80,
+  "mode" : {
+    "auto" : "ON",
+    "manual" : "OFF",
+    "low battery" : "OFF",
+    "open window" : "OFF",
+    "vacation" : "OFF",
+    "locked" : "OFF",
+    "boost" : "OFF",
+    "unknown" : "OFF",
+    "dst" : "ON",
+    "on" : "OFF",
+    "off" : "OFF"
+  },
+  "vacation" : null
+}
+```
+
+The thermostat's parameters can be setted with HTTP-requests, for example:
+
+Request (set temperature to 24 °C and thermostat mode to manual):
+```
+http://192.168.1.100/eq3/eq3.php?mac=00-11-42-DD-EE-69&temperature=24.0&mode=manual
+```
+
+Response (set temperature to 24 °C and thermostat mode to manual):
+```
+{
+  "mac" : "00-11-42-DD-EE-69",
+  "temperature" : 24.0,
+  "valve" : 90,
+  "mode" : {
+    "auto" : "OFF",
+    "manual" : "ON",
+    "low battery" : "OFF",
+    "open window" : "OFF",
+    "vacation" : "OFF",
+    "locked" : "OFF",
+    "boost" : "OFF",
+    "unknown" : "OFF",
+    "dst" : "ON",
+    "on" : "OFF",
+    "off" : "OFF"
+  },
+  "vacation" : null
+}
+``` 
+
+## Setup
+
+### Expect and bluetooth paaring
+
+0. Check pre-conditions
+
+Install `expect`:
+```
+$ sudo apt install expect
+```
+
+Check if `gatttool` is available:
+```
+$ gatttool
+Usage:
+  gatttool [OPTION...]
+...
+
+```
+
+1. Discover the MAC address of your thermostat
+
+```
+$ sudo hcitool lescan
+LE Scan ...
+38:01:95:84:A8:B1 (unknown)
+00:1A:22:0A:91:CF (unknown)
+00:1A:22:0A:91:CF CC-RT-BLE
+```
+
+It is the one related to the device CC-RT-BLE.
+
+2. Pair bluetooth
+
+Actually I am not 100% sure, but it seems that the thermostat must be explicitly paired (maybe only newer versions). Therefore you have to press the button on the termostat
+and start the pairing procedure. It depends on your linux distribution how devices must be paired there. The pin seems not to be required for pairing.
+
+After that check if you can run expect script:
+
+```
+$ ./eq3.exp 00:1A:22:07:FD:03 sync
+
+Temperature:			10.5°C
+Valve:				0%
+Mode:				manual 
+Vacation mode:			off
+```
+
+## WebServer and PHP
+Install any WebServer (NginX, Apache, Lighttpd) with php support.
+Then you can call the php script at url like this:
+
+```
+http://localhost/eq3/eq3.php?mac=00-1A-22-77-42-69
+```
+
+## OpenHab2
+1. Install HTTP-Binding and JSONPath Transformation
+
+2. Approach to read and write thermostat values with Rules
+
+2.1 Item
+
+/etc/openhab2/items/thermostat.items
+
+```
+Number thermostat_wz "Thermostat Wohnzimmer [%.1f °C]" <temperature>
+Switch thermostat_wz_mode "Thermostat Auto [%s]"
+Switch thermostat_wz_boost "Thermostat Boost [%s]"
+Number thermostat_wz_valve "Thermostat Ventil [%.1f]"
+```
+
+2.2 Rules
+
+/etc/openhab2/rules/thermostat.rules
+
+```
+import java.util.concurrent.locks.ReentrantLock 
+
+val ReentrantLock lock = new ReentrantLock() 
+var eqUrl = "http://localhost/eq3/eq3.php?mac=" 
+var mac_wz =     "00-1A-22-33-44-69" 
+// here comes other thermostats
+
+val readThermostat = [ eqUrl, mac |
+
+  val ReentrantLock lock2 = new ReentrantLock()
+
+  lock2.lock()
+  try{
+    var url = eqUrl + mac
+    logDebug("thermostat", "read thermostat " + url)
+    var response = sendHttpGetRequest(url)
+
+    if (response !== null) {
+      // TODO handle { "error" : "Connection failed." }
+      var temperature = transform("JSONPATH", "$.temperature", response)
+      var valve = transform("JSONPATH", "$.valve", response)
+      var mode_auto = transform("JSONPATH", "$.mode.auto", response)
+      var mode_boost = transform("JSONPATH", "$.mode.boost", response)
+
+      var temperatureNumber = Float::parseFloat(String::format("%s", temperature))
+      var valveNumber = Float::parseFloat(String::format("%s", valve))
+
+      // TODO use map or group
+      // ? how to compare two strings in OpenHab?
+      // must be mac_wz.equals(mac), but I use this ugly comparation
+      if(mac == "00-1A-22-33-44-69") {
+        logDebug("thermostat", "Update " + "Wohnzimmer")
+        thermostat_wz.postUpdate(temperatureNumber)
+        thermostat_wz_valve.postUpdate(valveNumber)
+        thermostat_wz_mode.postUpdate(mode_auto)
+        thermostat_wz_boost.postUpdate(mode_boost)
+      }
+      // here comes other thermostats
+
+      logDebug("thermostat", "update successful " + mac)
+    } else {
+      logDebug("thermostat", "update error: response is null")
+    }
+  } finally {
+    lock2.unlock()
+  }
+
+]
+
+val updateTemperature = [ eqUrl, mac, GenericItem item |
+
+  var url = eqUrl + mac
+  url +=  "&temperature=" + item.state
+  logDebug("thermostat", "call URL " + url)
+  sendHttpGetRequest(url)
+  
+]
+
+val updateBoost = [ eqUrl, mac, GenericItem item |
+
+  var url = eqUrl + mac
+  url +=  "&boost=" + item.state
+  logDebug("thermostat", "call URL " + url)
+  sendHttpGetRequest(url)
+
+]
+
+
+rule  "Thermostat WZ Temperature"
+  when
+    Item thermostat_wz changed
+  then
+    updateTemperature.apply(eqUrl, mac_wz, thermostat_wz)
+    readThermostat.apply(eqUrl, mac_wz)
+  end
+
+rule  "Thermostat WZ Boost"
+  when
+    Item thermostat_wz_boost changed
+  then
+    updateBoost.apply(eqUrl, mac_wz, thermostat_wz_boost)
+    readThermostat.apply(eqUrl, mac_wz)
+  end 
+
+// copy both rules for other thermostats
+  
+
+rule "Thermostat Read"
+  when
+    // execute every two minutes at 0th second
+    Time cron "0 0/2 * * * ?"
+  then
+    lock.lock()
+    try {
+      readThermostat.apply(eqUrl, mac_wz)
+    } finally {
+      lock.unlock()
+    }
+	// here comes other thermostats
+  end
+
+```
+
+3. Without Rules
+
+3.1. Item
+
+/etc/openhab2/items/thermostat.items
+
+```
+Number thermostat_wz "Thermostat Wohnzimmer [%.1f °C]" <temperature> { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&temperature=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:600000:JSONPATH($.temperature)]" }
+Switch thermostat_wz_mode "Thermostat Auto [%s]" { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&mode=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:600000:JSONPATH($.mode.auto)]" }
+Switch thermostat_wz_boost "Thermostat Boost [%s]" { http=">[*:GET:http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69&boost=%2$s{Authorization=Basic SECRET}] <[thermostatWohnzimmer:120000:JSONPATH($.mode.boost)]" }
+Number thermostat_wz_valve "Thermostat Ventil [%.1f]"  { http="<[thermostatWohnzimmer:600000:JSONPATH($.valve)]"}
+```
+
+3.2. HTTP-config 
+
+/etc/openhab2/services/http.cfg
+
+```
+thermostatWohnzimmer.url=http://localhost/eq3/eq3.php?mac=00-11-22-33-42-69{Authorization=Basic SECRET}
+thermostatWohnzimmer.updateInterval=120000
+```
+
+
+4. Sitemap 
+
+/etc/openhab2/sitemaps/default.sitemap
+
+```
+sitemap default label="SmartHome"
+{
+
+  Setpoint item=thermostat_wz label="Thermostat [%.1f °C]" minValue=4.5 maxValue=30 step=0.5
+  Text item=thermostat_wz_valve
+  Switch item=thermostat_wz_mode
+  Switch item=thermostat_wz_boost
+
+}
+```
+
+
+
+
+Below is the @Heckie75's original README
+
 # eQ-3-radiator-thermostat
 
 Full-featured shell script interface based on expect and gatttool for eqiva eQ-3 radiator thermostat
