@@ -130,8 +130,42 @@ $ ./eq3.exp W sync
 
 ### 3. Pair bluetooth
 
-Paring is not required. However after inserting battery you have to disable and re-enable bluetooth in menu. Otherwise device is not found via bluetooth. After that you can immediately control it via BT.
+Paring is not required if your thermostat asks for a 4-digit pin. However after inserting battery you have to disable and re-enable bluetooth in menu. Otherwise device is not found via bluetooth. After that you can immediately control it via BT.
 
+Thermostats with newer firmwares, e.g. 1.46 and above, ask for a 6-digit pin and pairing is required. The following works for me:
+
+* Step 1: open ```bluetoothctl```
+* Step 2: select bluetooth device (required in my setup * since a have two controllers, i.e. a build-in one and an external USB dongle)
+* Step 3: connect to thermostat by entering mac address
+* Step 4: enter passkey
+* Step 5: disconnect and quit.
+
+Example:
+```
+$ bluetoothctl
+Agent registered
+[CHG] Controller 00:1A:7D:DA:71:13 Pairable: yes
+[CHG] Controller 14:F6:D8:D4:1F:F1 Pairable: yes
+[bluetooth]# select  00:1A:7D:DA:71:13
+Controller 00:1A:7D:DA:71:13 my-pc [default]
+[bluetooth]# connect 00:1A:22:0A:91:CF
+Attempting to connect to 00:1A:22:0A:91:CF
+[CHG] Device 00:1A:22:0A:91:CF Connected: yes
+[CHG] Device 00:1A:22:0A:91:CF Connected: no
+Connection successful
+[CHG] Device 00:1A:22:0A:91:CF Connected: yes
+Request passkey
+[agent] Enter passkey (number in 0-999999): 308448
+[NEW] Primary Service (Handle 0x8281)
+        /org/bluez/hci1/dev_00_1A_22_0A_91_CF/service0200
+        00001801-0000-1000-8000-00805f9b34fb
+        Generic Attribute Profile
+...
+[CC-RT-BLE]# disconnect
+[CC-RT-BLE]# quit
+```
+
+Afterwards everything works again. Don't forget to explicitly disconnect when you are in ```bluetoothctl```. Otherwise the script can't connect since the thermostat is occupied. Note that for some reason I had to repeat the pairing process after some time (in my case a month or so).
 
 ## Examples
 
