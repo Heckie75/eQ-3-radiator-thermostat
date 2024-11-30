@@ -563,14 +563,14 @@ proc getModeAsJson {} {
   foreach key [lsort [array names MODE]] {
 
     if {[expr $key == 0 && [hexToDecimal $thermostat(mode)] % 2 == 0] || [hexToDecimal $thermostat(mode)] & $key} {
-      set v "true"
+      set v \"ON\"
     } else {
-      set v "false"
+      set v \"OFF\"
     }
     append json "    \"" $MODE($key) "\" : " $v ",\n"
   }
-  append json "    \"on\" : " [expr $thermostat(temperature) == 30 ? "true" : "false" ] ",\n"
-  append json "    \"off\" : " [expr $thermostat(temperature) == 4.5 ? "true" : "false" ] "\n"
+  append json "    \"on\" : \"" [expr $thermostat(temperature) == 30 ? "ON" : "OFF" ] "\",\n"
+  append json "    \"off\" : \"" [expr $thermostat(temperature) == 4.5 ? "ON" : "OFF" ] "\"\n"
   append json "  \}"
   return $json
 }
@@ -669,6 +669,7 @@ proc printDevice {} {
   return $out
 }
 
+
 proc toJson {} {
   global REQUESTS
   global DAYS
@@ -676,7 +677,6 @@ proc toJson {} {
   global thermostat
 
   set connected [connect]
-
 
   if { $connected != 0} {
     puts "\{ \"error\" : \"Connection failed.\" \}"
@@ -737,6 +737,37 @@ proc toJson {} {
   puts $out
 }
 
+proc toJsonShort {} {
+  global REQUESTS
+  global MODE_BY_NAME
+  global thermostat
+
+  set connected [connect]
+
+  if { $connected != 0} {
+    puts "\{ \"error\" : \"Connection failed.\" \}"
+    exit -1
+  }
+
+  set currentTime [currentTime]
+  set currentDate [currentDate]
+  set raw_status [writeRequest $REQUESTS(setTime) "[dateToHex $currentDate][timeToHex $currentTime]"]
+  parseMode $raw_status
+
+  append out "\{\n"
+  append out "  \"mac\" : \"$thermostat(mac)\",\n"
+  append out "  \"temperature\" : $thermostat(temperature),\n"
+  append out "  \"valve\" : $thermostat(valve),\n"
+  append out "  \"mode\" : [getModeAsJson],\n"
+  if {[hexToDecimal $thermostat(mode)] & $MODE_BY_NAME(vacation)} {
+    append out "  \"vacation\" : \"$thermostat(vacation_date) $thermostat(vacation_time)\"\n"
+  } else {
+    append out "  \"vacation\" : null\n"
+  }
+  append out "\}"
+
+  puts $out
+}
 
 proc printStatus {} {
   global HANDLES
@@ -845,6 +876,13 @@ proc printTimers {} {
 }
 
 proc dumpThermostat {} {
+  append out [printTimers]
+  append out "\n"
+  append out [printDevice]
+  puts $out
+}
+
+proc dumpThermostatShort {} {
   append out [printTimers]
   append out "\n"
   append out [printDevice]
@@ -1226,9 +1264,16 @@ proc doCommand {} {
     ^json$ {
       toJson
     }
+    ^devjson$ {
+      toJsonShort
+    }
     ^status$ {
       init [expr $INIT(device) + $INIT(mode) + $INIT(timer) + $INIT(serial)]
       dumpThermostat
+    }
+    ^stat$ {
+      init [expr $INIT(device) + $INIT(mode)]
+      printStatus
     }
     ^lock$ {
       init 0
